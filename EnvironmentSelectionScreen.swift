@@ -53,6 +53,20 @@ struct EnvironmentSelectionScreen: View {
             .background(Color(.systemGroupedBackground))
             .navigationTitle("Choose Environment")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        withAnimation {
+                            gameState.currentScreen = .home
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: "chevron.left")
+                            Text("Home")
+                        }
+                    }
+                }
+            }
         }
     }
 }
