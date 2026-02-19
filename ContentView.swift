@@ -8,6 +8,8 @@ struct ContentView: View {
             switch gameState.currentScreen {
             case .intro:
                 IntroScreen(gameState: gameState)
+            case .onboarding:
+                OnboardingView(gameState: gameState)
             case .home:
                 HomeScreen(gameState: gameState)
             case .environmentSelection:
