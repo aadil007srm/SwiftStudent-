@@ -1,20 +1,18 @@
 import SwiftUI
 
-enum EnvironmentType: String, CaseIterable {
+enum EnvironmentType: String, CaseIterable, Identifiable {
     case lab = "Laboratory"
-    case warehouse = "Warehouse"
     case office = "Office"
     case kitchen = "Kitchen"
-    case serverRoom = "Server Room"
     case factory = "Factory"
+    
+    var id: String { rawValue }
     
     var icon: String {
         switch self {
         case .lab: return "flask.fill"
-        case .warehouse: return "shippingbox.fill"
         case .office: return "building.2.fill"
         case .kitchen: return "fork.knife"
-        case .serverRoom: return "server.rack"
         case .factory: return "gearshape.2.fill"
         }
     }
@@ -22,22 +20,18 @@ enum EnvironmentType: String, CaseIterable {
     var color: Color {
         switch self {
         case .lab: return .blue
-        case .warehouse: return .orange
         case .office: return .green
         case .kitchen: return .red
-        case .serverRoom: return .purple
-        case .factory: return .brown
+        case .factory: return .orange
         }
     }
     
     var description: String {
         switch self {
-        case .lab: return "Chemical hazards & scientific equipment"
-        case .warehouse: return "Storage & logistics safety"
-        case .office: return "Electrical & fire safety"
+        case .lab: return "Chemical & equipment safety"
+        case .office: return "Fire & electrical safety"
         case .kitchen: return "Fire & burn prevention"
-        case .serverRoom: return "Electrical & cooling systems"
-        case .factory: return "Industrial machinery & materials"
+        case .factory: return "Industrial safety"
         }
     }
 }

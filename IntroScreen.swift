@@ -2,87 +2,79 @@ import SwiftUI
 
 struct IntroScreen: View {
     @ObservedObject var gameState: GameState
-    @State private var animateTitle = false
+    @State private var isAnimated = false
     
     var body: some View {
-        VStack(spacing: 40) {
-            Spacer()
+        ZStack {
+            // Background gradient
+            LinearGradient(
+                colors: [.red.opacity(0.3), .orange.opacity(0.2)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
             
-            // App Icon - Emergency Theme
-            ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            gradient: Gradient(colors: [Color(red: 1.0, green: 0.3, blue: 0.2), Color(red: 1.0, green: 0.5, blue: 0.0)]),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 140, height: 140)
-                    .shadow(color: Color(red: 1.0, green: 0.3, blue: 0.2).opacity(0.4), radius: 20, x: 0, y: 10)
+            VStack(spacing: 40) {
+                Spacer()
                 
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 70))
-                    .foregroundColor(.white)
-            }
-            .scaleEffect(animateTitle ? 1.0 : 0.5)
-            .animation(.spring(response: 0.6, dampingFraction: 0.6), value: animateTitle)
-            
-            // Title
-            VStack(spacing: 12) {
-                Text("Safe60")
-                    .font(.system(size: 52, weight: .bold, design: .rounded))
-                    .foregroundColor(.primary)
-                
-                Text("Emergency Hazard Recognition")
-                    .font(.title3.weight(.medium))
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                
-                Text("Make correct safety decisions under pressure")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 40)
-            }
-            .opacity(animateTitle ? 1 : 0)
-            
-            Spacer()
-            
-            // Start Button
-            Button(action: {
-                HapticManager.shared.lightImpact()
-                withAnimation(.spring(response: 0.4)) {
-                    gameState.currentScreen = .home
+                // App Icon
+                ZStack {
+                    Circle()
+                        .fill(.red.gradient)
+                        .frame(width: 140, height: 140)
+                        .shadow(color: .red.opacity(0.4), radius: 20)
+                    
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 70))
+                        .foregroundStyle(.white)
                 }
-            }) {
-                HStack {
-                    Text("Begin Training")
+                .scaleEffect(isAnimated ? 1.0 : 0.8)
+                .opacity(isAnimated ? 1.0 : 0.0)
+                
+                // Title
+                VStack(spacing: 12) {
+                    Text("Safe60")
+                        .font(.system(size: 54, weight: .bold, design: .rounded))
+                        .foregroundStyle(.primary)
+                    
+                    Text("Emergency Response Training")
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                    
+                    Text("60-second emergency scenarios")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .opacity(isAnimated ? 1.0 : 0.0)
+                
+                Spacer()
+                
+                // Start Button - iOS 16 style
+                Button {
+                    withAnimation(.spring()) {
+                        gameState.currentScreen = .home
+                    }
+                } label: {
+                    Text("Start Training")
                         .font(.headline)
-                    Image(systemName: "arrow.right.circle.fill")
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(.red.gradient, in: RoundedRectangle(cornerRadius: 16))
                 }
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(
-                    LinearGradient(
-                        gradient: Gradient(colors: [Color(red: 1.0, green: 0.3, blue: 0.2), Color(red: 1.0, green: 0.5, blue: 0.0)]),
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-                .cornerRadius(16)
+                .buttonStyle(.plain)
+                .padding(.horizontal, 40)
+                .shadow(color: .red.opacity(0.3), radius: 10)
+                .scaleEffect(isAnimated ? 1.0 : 0.9)
+                
+                Spacer()
+                    .frame(height: 60)
             }
-            .padding(.horizontal, 40)
-            .shadow(color: Color(red: 1.0, green: 0.3, blue: 0.2).opacity(0.3), radius: 10, x: 0, y: 5)
-            
-            Spacer()
-                .frame(height: 60)
         }
-        .padding()
         .onAppear {
-            withAnimation(.easeOut(duration: 0.8)) {
-                animateTitle = true
+            withAnimation(.spring(duration: 0.8)) {
+                isAnimated = true
             }
         }
     }
