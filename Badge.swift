@@ -85,6 +85,7 @@ class BadgeManager: ObservableObject {
         for badge in BadgeManager.allBadges {
             if !earnedBadges.contains(badge.name) && isBadgeEarned(badge, gameState: gameState) {
                 earnedBadges.insert(badge.name)
+                gameState.badgesEarnedThisSession.insert(badge.name)  // Track new badge
             }
         }
     }
@@ -165,13 +166,6 @@ struct BadgesCollectionView: View {
             }
             .navigationTitle("Badges")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Back") {
-                        gameState.currentScreen = .home
-                    }
-                }
-            }
             .onAppear {
                 badgeManager.checkAndAwardBadges(gameState: gameState)
             }
