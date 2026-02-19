@@ -19,10 +19,10 @@ enum EnvironmentType: String, CaseIterable, Identifiable {
     
     var color: Color {
         switch self {
-        case .lab: return .blue
-        case .office: return .green
-        case .kitchen: return .red
-        case .factory: return .orange
+        case .lab: return .labPurple
+        case .office: return .officeBlue
+        case .kitchen: return .kitchenRed
+        case .factory: return .factoryOrange
         }
     }
     
