@@ -3,191 +3,189 @@ import SwiftUI
 struct HomeScreen: View {
     @ObservedObject var gameState: GameState
     @StateObject private var badgeManager = BadgeManager()
-    @State private var showFireTypes = false
-    @State private var showExtinguisherGuide = false
-    @State private var showPowerSafety = false
-    @State private var showProgress = false
-    @State private var showSettings = false
     
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Hero Section
+            List {
+                // Hero Section
+                Section {
                     VStack(spacing: 20) {
-                        FireAnimation()
-                            .frame(height: 80)
+                        Image(systemName: "flame.circle.fill")
+                            .font(.system(size: 60))
+                            .foregroundStyle(.red.gradient)
                         
-                        Text("Safe60")
-                            .font(.largeTitle.bold())
+                        Text("Emergency Response Training")
+                            .font(.title2.bold())
+                            .multilineTextAlignment(.center)
                         
-                        Text("The first 60 seconds decide everything")
+                        Text("Learn to recognize hazards and respond under time pressure")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 20)
-                    
-                    // Main Training Button
-                    PulsingButton(
-                        title: "Start Training",
-                        icon: "play.circle.fill",
-                        color: .red
-                    ) {
+                    .listRowBackground(Color.clear)
+                }
+                
+                // Training Section
+                Section("Training") {
+                    Button {
                         gameState.currentScreen = .environmentSelection
-                    }
-                    .padding(.horizontal)
-                    
-                    // Quick Access Cards
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("Learn & Practice")
-                            .font(.headline)
-                            .padding(.horizontal)
-                        
-                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
-                            QuickAccessCard(
-                                title: "Learn Fire Types",
-                                icon: "flame.fill",
-                                color: .red
-                            ) {
-                                showFireTypes = true
-                            }
-                            
-                            QuickAccessCard(
-                                title: "Extinguisher Guide",
-                                icon: "extinguisher.fill",
-                                color: .green
-                            ) {
-                                showExtinguisherGuide = true
-                            }
-                            
-                            QuickAccessCard(
-                                title: "Power Safety",
-                                icon: "bolt.shield.fill",
-                                color: .yellow
-                            ) {
-                                showPowerSafety = true
-                            }
-                            
-                            QuickAccessCard(
-                                title: "Your Progress",
-                                icon: "chart.line.uptrend.xyaxis",
-                                color: .blue
-                            ) {
-                                showProgress = true
-                            }
-                        }
-                        .padding(.horizontal)
-                    }
-                    
-                    // Stats Section
-                    if gameState.totalDecisions > 0 {
-                        VStack(alignment: .leading, spacing: 16) {
-                            Text("Recent Stats")
+                    } label: {
+                        HStack {
+                            Label("Start Training", systemImage: "play.circle.fill")
                                 .font(.headline)
-                                .padding(.horizontal)
-                            
+                            Spacer()
+                        }
+                    }
+                    .tint(.red)
+                }
+                
+                // Quick Access Features
+                Section("Learn") {
+                    NavigationLink {
+                        FireTypesView(gameState: gameState)  // ✅ Added gameState parameter
+                    } label: {
+                        Label("Fire Types Guide", systemImage: "flame.fill")
+                    }
+                    
+                    NavigationLink {
+                        ExtinguisherGuideView(gameState: gameState)  // ✅ Added gameState parameter
+                    } label: {
+                        Label("Extinguisher Guide", systemImage: "fireworks")
+                    }
+                    
+                    NavigationLink {
+                        PowerSafetyView(gameState: gameState)
+                    } label: {
+                        Label("Power Safety", systemImage: "bolt.fill")
+                    }
+                }
+                
+                // Stats Section
+                if gameState.totalDecisions > 0 {
+                    Section("Your Progress") {
+                        NavigationLink {
+                            TrainingProgressView(gameState: gameState)
+                        } label: {
                             VStack(spacing: 12) {
-                                HStack {
-                                    Label("Score", systemImage: "star.fill")
-                                        .foregroundStyle(.yellow)
-                                    Spacer()
-                                    Text("\(gameState.score)")
-                                        .font(.headline)
+                                HStack(spacing: 20) {
+                                    StatBadge(
+                                        icon: "target",
+                                        value: "\(gameState.score)",
+                                        label: "Score",
+                                        color: .blue
+                                    )
+                                    
+                                    StatBadge(
+                                        icon: "percent",
+                                        value: "\(gameState.accuracyPercentage)%",
+                                        label: "Accuracy",
+                                        color: .green
+                                    )
                                 }
                                 
-                                HStack {
-                                    Label("Accuracy", systemImage: "target")
-                                        .foregroundStyle(.green)
-                                    Spacer()
-                                    Text("\(gameState.accuracyPercentage)%")
-                                        .font(.headline)
-                                }
-                                
-                                HStack {
-                                    Label("Correct Decisions", systemImage: "checkmark.circle.fill")
-                                        .foregroundStyle(.blue)
-                                    Spacer()
-                                    Text("\(gameState.correctDecisions)")
-                                        .font(.headline)
+                                HStack(spacing: 20) {
+                                    StatBadge(
+                                        icon: "checkmark.circle",
+                                        value: "\(gameState.correctDecisions)",
+                                        label: "Correct",
+                                        color: .green
+                                    )
+                                    
+                                    StatBadge(
+                                        icon: "xmark.circle",
+                                        value: "\(gameState.mistakes)",
+                                        label: "Mistakes",
+                                        color: .red
+                                    )
                                 }
                             }
-                            .padding()
-                            .background(Color(.systemGray6))
-                            .cornerRadius(12)
-                            .padding(.horizontal)
                         }
                     }
                     
                     // Badges Section
-                    if badgeManager.unlockedCount > 0 {
-                        VStack(alignment: .leading, spacing: 16) {
+                    Section("Achievements") {
+                        NavigationLink {
+                            BadgesCollectionView(gameState: gameState)
+                        } label: {
                             HStack {
-                                Text("Badges")
-                                    .font(.headline)
+                                Image(systemName: "trophy.fill")
+                                    .foregroundStyle(.yellow.gradient)
+                                
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Badges")
+                                        .font(.headline)
+                                    
+                                    // ✅ Fixed: Use .count on the Set
+                                    Text("\(badgeManager.earnedBadges.count) earned")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                
                                 Spacer()
-                                Text("\(badgeManager.unlockedCount)/\(badgeManager.badges.count)")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .padding(.horizontal)
-                            
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 12) {
-                                    ForEach(badgeManager.badges.filter { $0.isUnlocked }) { badge in
-                                        VStack(spacing: 8) {
-                                            ZStack {
-                                                Circle()
-                                                    .fill(badge.colorValue.gradient)
-                                                    .frame(width: 50, height: 50)
-                                                
-                                                Image(systemName: badge.icon)
-                                                    .foregroundStyle(.white)
-                                            }
-                                            
-                                            Text(badge.name)
-                                                .font(.caption2)
-                                                .lineLimit(2)
-                                                .multilineTextAlignment(.center)
-                                                .frame(width: 60)
-                                        }
+                                
+                                // Show first 3 earned badges
+                                HStack(spacing: 4) {
+                                    ForEach(Array(BadgeManager.allBadges.filter { badgeManager.earnedBadges.contains($0.name) }.prefix(3))) { badge in
+                                        Image(systemName: badge.icon)
+                                            .font(.caption)
+                                            .foregroundStyle(badge.color)
                                     }
                                 }
-                                .padding(.horizontal)
                             }
                         }
                     }
-                    
-                    // Settings Button
-                    Button {
-                        showSettings = true
-                    } label: {
-                        Label("Settings", systemImage: "gearshape.fill")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding()
                 }
-                .padding(.vertical)
+                
+                // About Section
+                Section {
+                    LabeledContent("Version", value: "1.0")
+                    LabeledContent("Developer", value: "Swift Student Challenge 2025")
+                    LabeledContent("Purpose", value: "Fire Safety Training")
+                } header: {
+                    Text("About")
+                }
             }
             .navigationTitle("Safe60")
-            .navigationBarTitleDisplayMode(.inline)
-            .sheet(isPresented: $showFireTypes) {
-                FireTypesView()
-            }
-            .sheet(isPresented: $showExtinguisherGuide) {
-                ExtinguisherGuideView()
-            }
-            .sheet(isPresented: $showPowerSafety) {
-                PowerSafetyView()
-            }
-            .sheet(isPresented: $showProgress) {
-                TrainingProgressView()
-            }
-            .sheet(isPresented: $showSettings) {
-                SettingsView()
+            .onAppear {
+                badgeManager.checkAndAwardBadges(gameState: gameState)
             }
         }
     }
+}
+
+// Stat Badge Component
+struct StatBadge: View {
+    let icon: String
+    let value: String
+    let label: String
+    let color: Color
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .foregroundStyle(color.gradient)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(value)
+                    .font(.headline)
+                
+                Text(label)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(8)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color(.secondarySystemBackground))
+        )
+    }
+}
+
+#Preview {
+    HomeScreen(gameState: GameState())
 }

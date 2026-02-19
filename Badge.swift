@@ -1,143 +1,184 @@
 import SwiftUI
 
-struct Badge: Identifiable, Codable {
-    let id: String
+struct Badge: Identifiable {
+    let id = UUID()
     let name: String
-    let description: String
     let icon: String
-    let color: String
-    var isUnlocked: Bool
-    var unlockedDate: Date?
+    let color: Color
+    let description: String
+    let requirement: BadgeRequirement
+}
+
+enum BadgeRequirement {
+    case completeScenarios(count: Int)
+    case achieveAccuracy(percentage: Int)
+    case completeEnvironment(type: EnvironmentType)
+    case perfectScore
+    case speedDemon(seconds: Int)
+}
+
+// Badge Manager
+@MainActor
+class BadgeManager: ObservableObject {
+    @Published var earnedBadges: Set<String> = []
     
-    static let allBadges: [Badge] = [
+    static let allBadges = [
         Badge(
-            id: "first_training",
             name: "First Steps",
-            description: "Complete your first training scenario",
-            icon: "figure.walk",
-            color: "blue",
-            isUnlocked: false
+            icon: "foot.fill",
+            color: .blue,
+            description: "Complete your first scenario",
+            requirement: .completeScenarios(count: 1)
         ),
         Badge(
-            id: "perfect_score",
-            name: "Perfect Response",
-            description: "Get 100% accuracy in a training session",
-            icon: "star.fill",
-            color: "yellow",
-            isUnlocked: false
-        ),
-        Badge(
-            id: "speed_demon",
             name: "Quick Thinker",
-            description: "Complete a scenario in under 30 seconds",
             icon: "bolt.fill",
-            color: "orange",
-            isUnlocked: false
+            color: .yellow,
+            description: "Complete a scenario in under 30 seconds",
+            requirement: .speedDemon(seconds: 30)
         ),
         Badge(
-            id: "factory_expert",
-            name: "Factory Safety Expert",
-            description: "Complete all factory scenarios",
+            name: "Perfect Response",
+            icon: "star.fill",
+            color: .yellow,
+            description: "Achieve 100% accuracy",
+            requirement: .achieveAccuracy(percentage: 100)
+        ),
+        Badge(
+            name: "Lab Expert",
+            icon: "flask.fill",
+            color: .purple,
+            description: "Complete all laboratory scenarios",
+            requirement: .completeEnvironment(type: .lab)
+        ),
+        Badge(
+            name: "Office Hero",
+            icon: "building.2.fill",
+            color: .green,
+            description: "Complete all office scenarios",
+            requirement: .completeEnvironment(type: .office)
+        ),
+        Badge(
+            name: "Kitchen Master",
+            icon: "fork.knife",
+            color: .red,
+            description: "Complete all kitchen scenarios",
+            requirement: .completeEnvironment(type: .kitchen)
+        ),
+        Badge(
+            name: "Factory Guardian",
             icon: "gearshape.2.fill",
-            color: "red",
-            isUnlocked: false
+            color: .orange,
+            description: "Complete all factory scenarios",
+            requirement: .completeEnvironment(type: .factory)
         ),
         Badge(
-            id: "fire_master",
-            name: "Fire Type Master",
-            description: "Learn about all fire types",
-            icon: "flame.fill",
-            color: "red",
-            isUnlocked: false
-        ),
-        Badge(
-            id: "extinguisher_pro",
-            name: "Extinguisher Pro",
-            description: "Complete the extinguisher guide",
-            icon: "extinguisher.fill",
-            color: "green",
-            isUnlocked: false
-        ),
-        Badge(
-            id: "week_streak",
-            name: "Dedicated Learner",
-            description: "Practice for 7 days in a row",
-            icon: "calendar",
-            color: "purple",
-            isUnlocked: false
-        ),
-        Badge(
-            id: "all_environments",
-            name: "Environment Master",
-            description: "Complete scenarios in all environments",
-            icon: "checkmark.seal.fill",
-            color: "green",
-            isUnlocked: false
+            name: "Safety Champion",
+            icon: "trophy.fill",
+            color: .yellow,
+            description: "Earn all other badges",
+            requirement: .completeScenarios(count: 20)
         )
     ]
     
-    var colorValue: Color {
-        switch color {
-        case "blue": return .blue
-        case "yellow": return .yellow
-        case "orange": return .orange
-        case "red": return .red
-        case "green": return .green
-        case "purple": return .purple
-        default: return .gray
+    func checkAndAwardBadges(gameState: GameState) {
+        for badge in BadgeManager.allBadges {
+            if !earnedBadges.contains(badge.name) && isBadgeEarned(badge, gameState: gameState) {
+                earnedBadges.insert(badge.name)
+            }
+        }
+    }
+    
+    private func isBadgeEarned(_ badge: Badge, gameState: GameState) -> Bool {
+        switch badge.requirement {
+        case .completeScenarios(let count):
+            return gameState.totalDecisions >= count
+            
+        case .achieveAccuracy(let percentage):
+            return gameState.accuracyPercentage >= percentage
+            
+        case .completeEnvironment(let type):
+            return gameState.selectedEnvironment == type &&
+                   gameState.currentScenarioIndex >= gameState.scenarios.count - 1
+            
+        case .perfectScore:
+            return gameState.accuracyPercentage == 100 && gameState.totalDecisions > 0
+            
+        case .speedDemon:  // ✅ Removed unused 'seconds' parameter
+            // This would need additional tracking in GameState
+            return false
         }
     }
 }
 
-class BadgeManager: ObservableObject {
-    @Published var badges: [Badge]
+// Badge Display View
+struct BadgeView: View {
+    let badge: Badge
+    let isEarned: Bool
     
-    private let badgesKey = "unlockedBadges"
+    var body: some View {
+        VStack(spacing: 8) {
+            ZStack {
+                Circle()
+                    .fill(isEarned ? badge.color.gradient : Color.gray.opacity(0.3).gradient)  // ✅ Fixed: both sides are now gradients
+                    .frame(width: 80, height: 80)
+                
+                Image(systemName: badge.icon)
+                    .font(.system(size: 40))
+                    .foregroundStyle(isEarned ? .white : .gray)
+            }
+            
+            Text(badge.name)
+                .font(.caption.bold())
+                .multilineTextAlignment(.center)
+            
+            Text(badge.description)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(height: 30)
+        }
+        .frame(width: 100)
+        .opacity(isEarned ? 1.0 : 0.5)
+    }
+}
+
+// Badges Collection View
+struct BadgesCollectionView: View {
+    @ObservedObject var gameState: GameState
+    @StateObject private var badgeManager = BadgeManager()
     
-    init() {
-        // Load saved badges from UserDefaults
-        if let data = UserDefaults.standard.data(forKey: badgesKey),
-           let savedBadges = try? JSONDecoder().decode([Badge].self, from: data) {
-            self.badges = savedBadges
-        } else {
-            self.badges = Badge.allBadges
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                LazyVGrid(columns: [
+                    GridItem(.adaptive(minimum: 100))
+                ], spacing: 20) {
+                    ForEach(BadgeManager.allBadges) { badge in
+                        BadgeView(
+                            badge: badge,
+                            isEarned: badgeManager.earnedBadges.contains(badge.name)
+                        )
+                    }
+                }
+                .padding()
+            }
+            .navigationTitle("Badges")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Back") {
+                        gameState.currentScreen = .home
+                    }
+                }
+            }
+            .onAppear {
+                badgeManager.checkAndAwardBadges(gameState: gameState)
+            }
         }
     }
-    
-    func unlockBadge(id: String) {
-        guard let index = badges.firstIndex(where: { $0.id == id }) else { return }
-        guard !badges[index].isUnlocked else { return }
-        
-        badges[index].isUnlocked = true
-        badges[index].unlockedDate = Date()
-        saveBadges()
-    }
-    
-    func checkAndUnlockBadges(gameState: GameState) {
-        // First training
-        if gameState.totalDecisions > 0 {
-            unlockBadge(id: "first_training")
-        }
-        
-        // Perfect score
-        if gameState.accuracyPercentage == 100 && gameState.totalDecisions > 0 {
-            unlockBadge(id: "perfect_score")
-        }
-        
-        // Factory expert - only unlock when all scenarios are completed
-        if gameState.selectedEnvironment == .factory && 
-           gameState.currentScenarioIndex > gameState.scenarios.count - 1 {
-            unlockBadge(id: "factory_expert")
-        }
-    }
-    
-    private func saveBadges() {
-        if let data = try? JSONEncoder().encode(badges) {
-            UserDefaults.standard.set(data, forKey: badgesKey)
-        }
-    }
-    
-    var unlockedCount: Int {
-        badges.filter { $0.isUnlocked }.count
-    }
+}
+
+#Preview {
+    BadgesCollectionView(gameState: GameState())
 }

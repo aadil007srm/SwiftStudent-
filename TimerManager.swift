@@ -1,6 +1,7 @@
 import SwiftUI
 import Combine
 
+@MainActor  // ✅ Added MainActor
 class TimerManager: ObservableObject {
     @Published var timeRemaining: Int = 60
     private var timer: AnyCancellable?

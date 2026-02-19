@@ -1,91 +1,151 @@
 import SwiftUI
 
 struct FireTypesView: View {
-    @Environment(\.dismiss) private var dismiss
-    @StateObject private var voiceManager = VoiceManager.shared
-    @StateObject private var badgeManager = BadgeManager()
-    @State private var expandedType: FireType?
+    @ObservedObject var gameState: GameState
+    @State private var expandedType: FireClass?
+    
+    enum FireClass: String, CaseIterable, Identifiable {
+        case classA = "Class A - Wood/Paper"
+        case classB = "Class B - Flammable Liquids"
+        case classC = "Class C - Electrical"
+        case classD = "Class D - Metal/Firecracker"
+        
+        var id: String { rawValue }
+        
+        var icon: String {
+            switch self {
+            case .classA: return "leaf.fill"
+            case .classB: return "drop.fill"
+            case .classC: return "bolt.fill"
+            case .classD: return "sparkles"
+            }
+        }
+        
+        var color: Color {
+            switch self {
+            case .classA: return .brown
+            case .classB: return .purple
+            case .classC: return .yellow
+            case .classD: return .orange
+            }
+        }
+        
+        var correctExtinguisher: String {
+            switch self {
+            case .classA: return "💧 Water or Foam"
+            case .classB: return "🧯 Foam or CO2"
+            case .classC: return "🧯 CO2 or Dry Powder"
+            case .classD: return "🧂 Dry Powder (Special)"
+            }
+        }
+        
+        var dangerousExtinguisher: String {
+            switch self {
+            case .classA: return "❌ None (most work)"
+            case .classB: return "❌ Water (spreads fire)"
+            case .classC: return "❌ Water (electrocution risk)"
+            case .classD: return "❌ Water (explosive reaction)"
+            }
+        }
+        
+        var description: String {
+            switch self {
+            case .classA:
+                return "Fires involving solid materials like wood, paper, cloth, and plastic. These are the most common fires."
+            case .classB:
+                return "Fires involving flammable liquids like gasoline, oil, paint, and solvents. Never use water!"
+            case .classC:
+                return "Fires involving electrical equipment like motors, generators, and appliances. Cut power first if safe."
+            case .classD:
+                return "Fires involving combustible metals and firecrackers. Extremely dangerous - requires special extinguishers."
+            }
+        }
+        
+        var examples: [String] {
+            switch self {
+            case .classA:
+                return ["Wood furniture", "Paper documents", "Cardboard boxes", "Fabric/clothing"]
+            case .classB:
+                return ["Gasoline", "Oil", "Paint", "Chemical solvents"]
+            case .classC:
+                return ["Electrical panels", "Motors", "Appliances", "Wiring"]
+            case .classD:
+                return ["Firecracker powder", "Magnesium", "Sodium", "Potassium"]
+            }
+        }
+    }
     
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 20) {
+                VStack(spacing: 24) {
                     // Header
                     VStack(spacing: 12) {
-                        FireAnimation()
-                            .frame(height: 80)
+                        Image(systemName: "flame.fill")
+                            .font(.system(size: 60))
+                            .foregroundStyle(.red.gradient)
                         
-                        Text("Learn Fire Types")
+                        Text("Fire Classification")
                             .font(.title.bold())
                         
-                        Text("Understand different fires and how to extinguish them")
+                        Text("Learn the 4 types of fires and how to fight them")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
                     }
                     .padding()
                     
-                    // Fire Types List
-                    ForEach(FireType.allCases) { fireType in
+                    // Fire Types
+                    ForEach(FireClass.allCases) { fireClass in
                         FireTypeCard(
-                            fireType: fireType,
-                            isExpanded: expandedType == fireType
+                            fireClass: fireClass,
+                            isExpanded: expandedType == fireClass
                         ) {
                             withAnimation(.spring()) {
-                                if expandedType == fireType {
-                                    expandedType = nil
-                                    voiceManager.stop()
-                                } else {
-                                    expandedType = fireType
-                                    voiceManager.speakFireType(fireType)
-                                }
+                                expandedType = expandedType == fireClass ? nil : fireClass
                             }
                         }
                     }
-                    .padding(.horizontal)
                 }
-                .padding(.vertical)
+                .padding()
             }
-            .navigationTitle("Fire Types")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Done") {
-                        voiceManager.stop()
-                        badgeManager.unlockBadge(id: "fire_master")
-                        dismiss()
+                    Button("Back") {
+                        gameState.currentScreen = .home
                     }
                 }
             }
-        }
-        .onDisappear {
-            voiceManager.stop()
         }
     }
 }
 
 struct FireTypeCard: View {
-    let fireType: FireType
+    let fireClass: FireTypesView.FireClass
     let isExpanded: Bool
-    let action: () -> Void
+    let onTap: () -> Void
     
     var body: some View {
-        Button(action: action) {
-            VStack(alignment: .leading, spacing: 16) {
-                // Header
-                HStack(spacing: 16) {
-                    // Icon
-                    Text(fireType.icon)
-                        .font(.system(size: 50))
+        VStack(alignment: .leading, spacing: 16) {
+            // Header
+            Button(action: onTap) {
+                HStack {
+                    Image(systemName: fireClass.icon)
+                        .font(.title)
+                        .foregroundStyle(fireClass.color.gradient)
+                        .frame(width: 40)
                     
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(fireType.name)
+                        Text(fireClass.rawValue)
                             .font(.headline)
                             .foregroundStyle(.primary)
                         
-                        Text(fireType.materials)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        if !isExpanded {
+                            Text("Tap to learn more")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                     
                     Spacer()
@@ -93,62 +153,82 @@ struct FireTypeCard: View {
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         .foregroundStyle(.secondary)
                 }
-                
-                // Expanded content
-                if isExpanded {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Divider()
+            }
+            .buttonStyle(.plain)
+            
+            // Expanded Content
+            if isExpanded {
+                VStack(alignment: .leading, spacing: 16) {
+                    Divider()
+                    
+                    // Description
+                    Text(fireClass.description)
+                        .font(.body)
+                    
+                    // Examples
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Examples:")
+                            .font(.subheadline.bold())
                         
-                        // What to use
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("✅ What to Use")
-                                .font(.subheadline.bold())
-                                .foregroundStyle(.green)
-                            
-                            Text(fireType.correctExtinguisher)
-                                .font(.body)
-                                .foregroundStyle(.primary)
-                        }
-                        
-                        // What NOT to use
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(fireType.wrongExtinguisher)
-                                .font(.subheadline.bold())
-                                .foregroundStyle(.red)
-                            
-                            if fireType == .classB || fireType == .classC || fireType == .classD {
-                                Text("Using water can cause serious injury or explosion!")
-                                    .font(.caption)
-                                    .foregroundStyle(.red)
-                                    .padding(8)
-                                    .background(.red.opacity(0.1))
-                                    .cornerRadius(8)
+                        ForEach(fireClass.examples, id: \.self) { example in
+                            HStack {
+                                Image(systemName: "circle.fill")
+                                    .font(.system(size: 6))
+                                    .foregroundStyle(fireClass.color)
+                                Text(example)
+                                    .font(.callout)
                             }
                         }
-                        
-                        // Voice button
-                        HStack {
-                            Spacer()
-                            Image(systemName: "speaker.wave.2.fill")
-                                .foregroundStyle(fireType.color)
-                            Text("Tap to hear explanation")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Spacer()
-                        }
-                        .padding(.top, 8)
                     }
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    
+                    Divider()
+                    
+                    // Correct Extinguisher
+                    HStack(spacing: 12) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Use:")
+                                .font(.caption.bold())
+                            Text(fireClass.correctExtinguisher)
+                                .font(.body)
+                        }
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.green.opacity(0.1))
+                    .cornerRadius(8)
+                    
+                    // Dangerous Extinguisher
+                    HStack(spacing: 12) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.red)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Never Use:")
+                                .font(.caption.bold())
+                            Text(fireClass.dangerousExtinguisher)
+                                .font(.body)
+                        }
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.red.opacity(0.1))
+                    .cornerRadius(8)
                 }
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
-            .padding()
-            .background(fireType.color.opacity(0.1))
-            .cornerRadius(16)
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(fireType.color.opacity(0.3), lineWidth: 2)
-            )
         }
-        .buttonStyle(.plain)
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(.secondarySystemBackground))
+                .shadow(color: fireClass.color.opacity(0.2), radius: 8)
+        )
     }
+}
+
+#Preview {
+    FireTypesView(gameState: GameState())
 }

@@ -3,236 +3,146 @@ import SwiftUI
 struct CompletionScreen: View {
     @ObservedObject var gameState: GameState
     @StateObject private var badgeManager = BadgeManager()
-    @StateObject private var performanceTracker = PerformanceTracker()
-    @State private var showTrophy = false
-    @State private var trophyScale: CGFloat = 0.5
+    @State private var showConfetti = false
     
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Animated Trophy
-                    if showTrophy {
-                        ZStack {
-                            Circle()
-                                .fill(resultColor().opacity(0.2))
-                                .frame(width: 150, height: 150)
+            ZStack {
+                // Main Content
+                List {
+                    // Results Header
+                    Section {
+                        VStack(spacing: 20) {
+                            ZStack {
+                                Circle()
+                                    .fill(resultColor().opacity(0.2).gradient)
+                                    .frame(width: 120, height: 120)
+                                
+                                Image(systemName: resultIcon())
+                                    .font(.system(size: 60))
+                                    .foregroundStyle(resultColor().gradient)
+                            }
+                            .scaleEffect(showConfetti ? 1.0 : 0.8)
+                            .animation(.spring(duration: 0.6), value: showConfetti)
                             
-                            Image(systemName: resultIcon())
-                                .font(.system(size: 80))
-                                .foregroundStyle(resultColor().gradient)
+                            Text("Training Complete!")
+                                .font(.title.bold())
+                            
+                            Text(performanceMessage())
+                                .font(.body)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
                         }
-                        .scaleEffect(trophyScale)
-                        .padding(.top, 20)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 20)
                     }
-                    
-                    // Title and message
-                    VStack(spacing: 12) {
-                        Text("Training Complete!")
-                            .font(.title.bold())
-                        
-                        Text(performanceMessage())
-                            .font(.body)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
-                    }
+                    .listRowBackground(Color.clear)
                     
                     // Performance Grade
-                    HStack(spacing: 20) {
-                        VStack(spacing: 8) {
+                    Section("Performance Grade") {
+                        HStack {
                             Text("Grade")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            
+                                .font(.headline)
+                            Spacer()
                             Text(grade())
-                                .font(.system(size: 60, weight: .bold))
+                                .font(.system(size: 48, weight: .bold, design: .rounded))
                                 .foregroundStyle(gradeColor())
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(gradeColor().opacity(0.1))
-                        .cornerRadius(16)
-                        
-                        VStack(spacing: 8) {
-                            Text("Score")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            
-                            Text("\(gameState.score)")
-                                .font(.system(size: 40, weight: .bold))
-                                .foregroundStyle(.yellow)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color(.systemGray6))
-                        .cornerRadius(16)
+                        .padding(.vertical, 8)
                     }
-                    .padding(.horizontal)
                     
                     // Detailed Results
-                    VStack(spacing: 12) {
-                        Text("Performance Details")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        
-                        VStack(spacing: 12) {
-                            ResultRow(
-                                icon: "target",
-                                label: "Accuracy",
-                                value: "\(gameState.accuracyPercentage)%",
-                                color: .green
-                            )
-                            
-                            ResultRow(
-                                icon: "checkmark.circle.fill",
-                                label: "Correct Decisions",
-                                value: "\(gameState.correctDecisions)",
-                                color: .blue
-                            )
-                            
-                            ResultRow(
-                                icon: "xmark.circle.fill",
-                                label: "Mistakes",
-                                value: "\(gameState.mistakes)",
-                                color: .red
-                            )
-                            
-                            ResultRow(
-                                icon: "list.bullet",
-                                label: "Total Decisions",
-                                value: "\(gameState.totalDecisions)",
-                                color: .orange
-                            )
-                        }
-                        .padding()
-                        .background(Color(.systemGray6))
-                        .cornerRadius(12)
-                    }
-                    .padding(.horizontal)
-                    
-                    // Insights
-                    if gameState.accuracyPercentage == 100 {
-                        InsightCard(
-                            icon: "star.fill",
-                            text: "Perfect score! You made all the right decisions.",
-                            color: .yellow
-                        )
-                    } else if gameState.accuracyPercentage >= 80 {
-                        InsightCard(
-                            icon: "chart.line.uptrend.xyaxis",
-                            text: "Great work! You're becoming an expert responder.",
-                            color: .green
-                        )
-                    } else {
-                        InsightCard(
-                            icon: "lightbulb.fill",
-                            text: "Keep practicing! Review fire types and extinguisher guides.",
-                            color: .blue
-                        )
+                    Section("Results") {
+                        LabeledContent("Final Score", value: "\(gameState.score)")
+                        LabeledContent("Accuracy", value: "\(gameState.accuracyPercentage)%")
+                        LabeledContent("Correct Answers", value: "\(gameState.correctDecisions)")
+                        LabeledContent("Mistakes", value: "\(gameState.mistakes)")
+                        LabeledContent("Total Decisions", value: "\(gameState.totalDecisions)")
                     }
                     
-                    // Newly unlocked badges
-                    if !newlyUnlockedBadges.isEmpty {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("New Badges Unlocked! 🎉")
-                                .font(.headline)
-                            
-                            ForEach(newlyUnlockedBadges) { badge in
+                    // Newly Earned Badges
+                    let newBadges = getNewlyEarnedBadges()
+                    if !newBadges.isEmpty {
+                        Section("🎉 New Badges Earned!") {
+                            ForEach(newBadges) { badge in
                                 HStack(spacing: 12) {
                                     ZStack {
                                         Circle()
-                                            .fill(badge.colorValue.gradient)
+                                            .fill(badge.color.gradient)
                                             .frame(width: 50, height: 50)
                                         
                                         Image(systemName: badge.icon)
+                                            .font(.title3)
                                             .foregroundStyle(.white)
                                     }
                                     
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text(badge.name)
                                             .font(.headline)
-                                        
                                         Text(badge.description)
                                             .font(.caption)
                                             .foregroundStyle(.secondary)
                                     }
-                                    
-                                    Spacer()
                                 }
-                                .padding()
-                                .background(badge.colorValue.opacity(0.1))
-                                .cornerRadius(12)
+                                .padding(.vertical, 4)
                             }
                         }
-                        .padding(.horizontal)
                     }
                     
-                    // Action Buttons
-                    VStack(spacing: 12) {
-                        CustomButton(
-                            title: "Train Again",
-                            icon: "arrow.clockwise",
-                            color: .red
-                        ) {
-                            savePerformance()
+                    // Actions
+                    Section {
+                        Button {
                             withAnimation {
                                 gameState.reset()
                             }
+                        } label: {
+                            HStack {
+                                Spacer()
+                                Label("Train Again", systemImage: "arrow.clockwise")
+                                    .font(.headline)
+                                Spacer()
+                            }
                         }
+                        .tint(.red)
                         
-                        CustomButton(
-                            title: "Back to Home",
-                            icon: "house.fill",
-                            color: .blue
-                        ) {
-                            savePerformance()
+                        Button {
                             gameState.currentScreen = .home
+                        } label: {
+                            HStack {
+                                Spacer()
+                                Label("Back to Home", systemImage: "house")
+                                Spacer()
+                            }
                         }
                     }
-                    .padding(.horizontal)
-                    .padding(.bottom)
+                }
+                .navigationTitle("Results")
+                
+                // Confetti Effect (optional visual enhancement)
+                if showConfetti && gameState.accuracyPercentage >= 90 {
+                    ConfettiView()
+                        .allowsHitTesting(false)
                 }
             }
-            .navigationTitle("Results")
-            .navigationBarTitleDisplayMode(.inline)
-        }
-        .onAppear {
-            checkBadges()
-            animateTrophy()
-        }
-    }
-    
-    private func animateTrophy() {
-        showTrophy = true
-        withAnimation(.spring(response: 0.6, dampingFraction: 0.5)) {
-            trophyScale = 1.0
+            .onAppear {
+                withAnimation {
+                    showConfetti = true
+                }
+                badgeManager.checkAndAwardBadges(gameState: gameState)
+            }
         }
     }
     
-    private func checkBadges() {
-        badgeManager.checkAndUnlockBadges(gameState: gameState)
-    }
-    
-    private func savePerformance() {
-        performanceTracker.recordSession(
-            score: gameState.score,
-            accuracy: gameState.accuracyPercentage,
-            responseTime: Double(60 - gameState.timerManager.timeRemaining),
-            environment: gameState.selectedEnvironment.rawValue
-        )
-    }
-    
-    private var newlyUnlockedBadges: [Badge] {
-        // Return recently unlocked badges (simplified - in real app would check timestamps)
-        badgeManager.badges.filter { $0.isUnlocked }
+    private func getNewlyEarnedBadges() -> [Badge] {
+        badgeManager.checkAndAwardBadges(gameState: gameState)
+        return BadgeManager.allBadges.filter { badgeManager.earnedBadges.contains($0.name) }
     }
     
     private func resultIcon() -> String {
         let accuracy = gameState.accuracyPercentage
         if accuracy >= 90 { return "trophy.fill" }
         if accuracy >= 70 { return "star.fill" }
-        return "hand.thumbsup.fill"
+        return "checkmark.circle.fill"
     }
     
     private func resultColor() -> Color {
@@ -244,10 +154,9 @@ struct CompletionScreen: View {
     
     private func performanceMessage() -> String {
         let accuracy = gameState.accuracyPercentage
-        if accuracy >= 90 { return "Excellent work! You're an expert emergency responder." }
-        if accuracy >= 70 { return "Good job! You have solid emergency response skills." }
-        if accuracy >= 50 { return "Keep practicing to improve your decision-making." }
-        return "Review the training materials and try again."
+        if accuracy >= 90 { return "Excellent work! You're an expert responder." }
+        if accuracy >= 70 { return "Good job! You have solid emergency skills." }
+        return "Keep practicing to improve your response skills."
     }
     
     private func grade() -> String {
@@ -267,50 +176,57 @@ struct CompletionScreen: View {
     }
 }
 
-struct ResultRow: View {
-    let icon: String
-    let label: String
-    let value: String
-    let color: Color
+// Simple Confetti Effect
+struct ConfettiView: View {
+    @State private var animate = false
     
     var body: some View {
-        HStack {
-            Image(systemName: icon)
-                .foregroundStyle(color)
-                .frame(width: 24)
-            
-            Text(label)
-                .foregroundStyle(.secondary)
-            
-            Spacer()
-            
-            Text(value)
-                .font(.headline)
-                .foregroundStyle(.primary)
+        ZStack {
+            ForEach(0..<30, id: \.self) { index in
+                ConfettiPiece(index: index)
+            }
+        }
+        .onAppear {
+            animate = true
         }
     }
 }
 
-struct InsightCard: View {
-    let icon: String
-    let text: String
-    let color: Color
+struct ConfettiPiece: View {
+    let index: Int
+    @State private var yPosition: CGFloat = -50
+    @State private var xPosition: CGFloat = 0
+    @State private var rotation: Double = 0
+    
+    let colors: [Color] = [.red, .orange, .yellow, .green, .blue, .purple]
     
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundStyle(color)
-            
-            Text(text)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-            
-            Spacer()
-        }
-        .padding()
-        .background(color.opacity(0.1))
-        .cornerRadius(12)
-        .padding(.horizontal)
+        Rectangle()
+            .fill(colors[index % colors.count])
+            .frame(width: 10, height: 10)
+            .rotationEffect(.degrees(rotation))
+            .position(x: xPosition, y: yPosition)
+            .onAppear {
+                xPosition = CGFloat.random(in: 50...350)
+                
+                withAnimation(
+                    .easeIn(duration: Double.random(in: 2...4))
+                    .repeatForever(autoreverses: false)
+                ) {
+                    yPosition = 900
+                    rotation = Double.random(in: 0...720)
+                }
+            }
     }
+}
+
+#Preview {
+    CompletionScreen(gameState: {
+        let state = GameState()
+        state.score = 80
+        state.correctDecisions = 8
+        state.mistakes = 2
+        state.totalDecisions = 10
+        return state
+    }())
 }

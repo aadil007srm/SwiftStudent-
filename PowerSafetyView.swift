@@ -1,52 +1,7 @@
 import SwiftUI
 
 struct PowerSafetyView: View {
-    @Environment(\.dismiss) private var dismiss
-    @StateObject private var voiceManager = VoiceManager.shared
-    @State private var selectedStep: Int?
-    
-    let safetySteps = [
-        PowerSafetyStep(
-            id: 0,
-            title: "Identify the Hazard",
-            icon: "exclamationmark.triangle.fill",
-            color: .red,
-            description: "Is there smoke, sparks, or fire from electrical equipment?",
-            action: "Look for warning signs: burning smell, sparks, smoke, or unusual sounds."
-        ),
-        PowerSafetyStep(
-            id: 1,
-            title: "Don't Touch Water",
-            icon: "drop.fill",
-            color: .blue,
-            description: "NEVER use water on electrical fires!",
-            action: "Water conducts electricity and can cause electrocution or make the fire spread."
-        ),
-        PowerSafetyStep(
-            id: 2,
-            title: "Cut the Power",
-            icon: "bolt.slash.fill",
-            color: .yellow,
-            description: "Turn off power at the circuit breaker if safe to do so.",
-            action: "Locate the electrical panel. Switch off the affected circuit. Do not touch if there's water nearby."
-        ),
-        PowerSafetyStep(
-            id: 3,
-            title: "Use CO2 Extinguisher",
-            icon: "extinguisher.fill",
-            color: .green,
-            description: "After cutting power, use a CO2 or dry chemical extinguisher.",
-            action: "Aim at the base of the fire. Never use water-based extinguishers on electrical fires."
-        ),
-        PowerSafetyStep(
-            id: 4,
-            title: "Evacuate if Needed",
-            icon: "figure.run",
-            color: .orange,
-            description: "If fire spreads or you can't cut power safely, evacuate immediately.",
-            action: "Alert others. Use emergency exits. Call fire department. Don't return until cleared."
-        )
-    ]
+    @ObservedObject var gameState: GameState
     
     var body: some View {
         NavigationStack {
@@ -54,211 +9,158 @@ struct PowerSafetyView: View {
                 VStack(spacing: 24) {
                     // Header
                     VStack(spacing: 12) {
-                        Image(systemName: "bolt.shield.fill")
+                        Image(systemName: "bolt.trianglebadge.exclamationmark.fill")
                             .font(.system(size: 60))
                             .foregroundStyle(.yellow.gradient)
                         
                         Text("Electrical Safety")
                             .font(.title.bold())
                         
-                        Text("Learn how to respond to electrical fires safely")
+                        Text("Learn when and how to cut power safely")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
                     }
                     .padding()
                     
-                    // Flowchart
-                    VStack(spacing: 20) {
-                        ForEach(Array(safetySteps.enumerated()), id: \.element.id) { index, step in
-                            VStack(spacing: 0) {
-                                PowerSafetyStepCard(
-                                    step: step,
-                                    stepNumber: index + 1,
-                                    isExpanded: selectedStep == step.id
-                                ) {
-                                    withAnimation(.spring()) {
-                                        if selectedStep == step.id {
-                                            selectedStep = nil
-                                            voiceManager.stop()
-                                        } else {
-                                            selectedStep = step.id
-                                            voiceManager.speak(step.description + " " + step.action)
-                                        }
-                                    }
-                                }
-                                
-                                // Arrow to next step
-                                if index < safetySteps.count - 1 {
-                                    Image(systemName: "arrow.down")
-                                        .font(.title2)
-                                        .foregroundStyle(.secondary)
-                                        .padding(.vertical, 8)
-                                }
-                            }
-                        }
-                    }
-                    .padding(.horizontal)
-                    
-                    // Warning Box
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundStyle(.red)
-                            Text("Critical Safety Rules")
-                                .font(.headline)
-                                .foregroundStyle(.red)
-                        }
+                    // When to Cut Power
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("When to Cut Power")
+                            .font(.title2.bold())
                         
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("❌ NEVER use water on electrical fires")
-                            Text("❌ NEVER touch electrical equipment with wet hands")
-                            Text("❌ NEVER attempt to fight a large electrical fire yourself")
-                            Text("✅ ALWAYS call emergency services for major fires")
-                            Text("✅ ALWAYS evacuate if unsure")
-                        }
-                        .font(.subheadline)
+                        SafetyRule(
+                            icon: "flame.fill",
+                            title: "Electrical Fire",
+                            description: "If electrical equipment is on fire, cut power at the main breaker BEFORE using extinguisher",
+                            color: .red
+                        )
+                        
+                        SafetyRule(
+                            icon: "smoke.fill",
+                            title: "Smoking Equipment",
+                            description: "If you see smoke coming from electrical panels or equipment, cut power immediately",
+                            color: .gray
+                        )
+                        
+                        SafetyRule(
+                            icon: "bolt.fill",
+                            title: "Sparking/Arcing",
+                            description: "If equipment is sparking, cut power at the breaker, never touch the equipment",
+                            color: .yellow
+                        )
                     }
                     .padding()
-                    .background(.red.opacity(0.1))
-                    .cornerRadius(12)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(.red.opacity(0.3), lineWidth: 2)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color(.secondarySystemBackground))
                     )
-                    .padding(.horizontal)
                     
-                    // Safe Distance Info
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("📏 Safe Distances")
-                            .font(.headline)
+                    // How to Cut Power Safely
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("How to Cut Power Safely")
+                            .font(.title2.bold())
                         
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("• Electrical panel: Keep 3 feet clear")
-                            Text("• Downed power lines: Stay 10+ meters away")
-                            Text("• Electrical fire: Use extinguisher from 6-8 feet")
-                        }
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        StepCard(number: 1, text: "Locate the main electrical panel (breaker box)")
+                        StepCard(number: 2, text: "Stand on dry surface, use dry hands")
+                        StepCard(number: 3, text: "Flip the main breaker to OFF position")
+                        StepCard(number: 4, text: "Verify power is off before approaching fire")
                     }
                     .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(12)
-                    .padding(.horizontal)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color(.secondarySystemBackground))
+                    )
+                    
+                    // Danger Warnings
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("⚠️ NEVER")
+                            .font(.title2.bold())
+                            .foregroundStyle(.red)
+                        
+                        DangerWarning(text: "Use water on electrical fires")
+                        DangerWarning(text: "Touch electrical equipment while standing in water")
+                        DangerWarning(text: "Cut power if breaker panel is on fire")
+                        DangerWarning(text: "Approach downed power lines")
+                    }
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color.red.opacity(0.1))
+                    )
                 }
-                .padding(.vertical)
+                .padding()
             }
-            .navigationTitle("Power Safety")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Done") {
-                        voiceManager.stop()
-                        dismiss()
+                    Button("Back") {
+                        gameState.currentScreen = .home
                     }
                 }
             }
         }
-        .onDisappear {
-            voiceManager.stop()
-        }
     }
 }
 
-struct PowerSafetyStep: Identifiable {
-    let id: Int
-    let title: String
+struct SafetyRule: View {
     let icon: String
-    let color: Color
+    let title: String
     let description: String
-    let action: String
-}
-
-struct PowerSafetyStepCard: View {
-    let step: PowerSafetyStep
-    let stepNumber: Int
-    let isExpanded: Bool
-    let action: () -> Void
+    let color: Color
     
     var body: some View {
-        Button(action: action) {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 16) {
-                    // Step number
-                    ZStack {
-                        Circle()
-                            .fill(step.color.gradient)
-                            .frame(width: 50, height: 50)
-                        
-                        Text("\(stepNumber)")
-                            .font(.title2.bold())
-                            .foregroundStyle(.white)
-                    }
-                    
-                    // Icon and title
-                    HStack(spacing: 12) {
-                        Image(systemName: step.icon)
-                            .font(.title2)
-                            .foregroundStyle(step.color)
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(step.title)
-                                .font(.headline)
-                                .foregroundStyle(.primary)
-                            
-                            if !isExpanded {
-                                Text(step.description)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
-                            }
-                        }
-                    }
-                    
-                    Spacer()
-                    
-                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .foregroundStyle(.secondary)
-                }
-                
-                // Expanded details
-                if isExpanded {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Divider()
-                        
-                        Text(step.description)
-                            .font(.body)
-                            .foregroundStyle(.primary)
-                        
-                        Text(step.action)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .padding()
-                            .background(step.color.opacity(0.1))
-                            .cornerRadius(8)
-                        
-                        // Voice indicator
-                        HStack {
-                            Spacer()
-                            Image(systemName: "speaker.wave.2.fill")
-                                .foregroundStyle(step.color)
-                            Text("Tap to hear details")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Spacer()
-                        }
-                    }
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-                }
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundStyle(color.gradient)
+                .frame(width: 40)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.headline)
+                Text(description)
+                    .font(.body)
+                    .foregroundStyle(.secondary)
             }
-            .padding()
-            .background(Color(.systemGray6))
-            .cornerRadius(16)
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(step.color.opacity(isExpanded ? 0.5 : 0.2), lineWidth: 2)
-            )
         }
-        .buttonStyle(.plain)
     }
+}
+
+struct StepCard: View {
+    let number: Int
+    let text: String
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(Color.blue.gradient)
+                    .frame(width: 32, height: 32)
+                
+                Text("\(number)")
+                    .font(.headline.bold())
+                    .foregroundStyle(.white)
+            }
+            
+            Text(text)
+                .font(.body)
+        }
+    }
+}
+
+struct DangerWarning: View {
+    let text: String
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "xmark.circle.fill")
+                .foregroundStyle(.red)
+            Text(text)
+                .font(.body)
+        }
+    }
+}
+
+#Preview {
+    PowerSafetyView(gameState: GameState())
 }

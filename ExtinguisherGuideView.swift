@@ -1,235 +1,132 @@
 import SwiftUI
 
 struct ExtinguisherGuideView: View {
-    @Environment(\.dismiss) private var dismiss
-    @StateObject private var soundManager = SoundManager.shared
-    @StateObject private var badgeManager = BadgeManager()
-    @State private var score = 0
-    @State private var attempts = 0
+    @ObservedObject var gameState: GameState
+    @State private var draggedExtinguisher: ExtinguisherType?
     @State private var showFeedback = false
-    @State private var feedbackMessage = ""
     @State private var isCorrect = false
+    
+    // ✅ Use the shared data
+    let extinguishers = ExtinguisherType.allExtinguishers
     
     var body: some View {
         NavigationStack {
-            ZStack {
-                ScrollView {
-                    VStack(spacing: 24) {
-                        // Header
-                        VStack(spacing: 12) {
-                            Image(systemName: "flame.fill")
-                                .font(.system(size: 60))
-                                .foregroundStyle(.red.gradient)
-                            
-                            Text("Extinguisher Guide")
-                                .font(.title.bold())
-                            
-                            Text("Drag the correct extinguisher to each fire type")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                                .multilineTextAlignment(.center)
-                        }
-                        .padding()
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Header
+                    VStack(spacing: 8) {
+                        Image(systemName: "flame.fill")
+                            .font(.system(size: 50))
+                            .foregroundStyle(.red.gradient)
                         
-                        // Score
-                        HStack {
-                            Label("Score: \(score)", systemImage: "star.fill")
-                                .font(.headline)
-                                .foregroundStyle(.yellow)
-                            
-                            Spacer()
-                            
-                            Label("Attempts: \(attempts)", systemImage: "arrow.counterclockwise")
-                                .font(.headline)
-                                .foregroundStyle(.blue)
-                        }
-                        .padding(.horizontal)
+                        Text("Extinguisher Guide")
+                            .font(.title.bold())
                         
-                        // Fire Types (Drop Targets)
-                        VStack(spacing: 16) {
-                            Text("Fire Types")
-                                .font(.headline)
-                                .frame(maxWidth: .infinity, alignment: .leading)
+                        Text("Learn which extinguisher to use for each fire type")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding()
+                    
+                    // Extinguisher Cards
+                    ForEach(extinguishers) { extinguisher in
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack {
+                                Image(systemName: extinguisher.icon)
+                                    .font(.title)
+                                    .foregroundStyle(extinguisher.color.gradient)
+                                
+                                Text(extinguisher.name)
+                                    .font(.title2.bold())
+                                
+                                Spacer()
+                            }
                             
-                            ForEach(FireType.allCases) { fireType in
-                                FireTypeDropTarget(fireType: fireType) { extinguisher in
-                                    handleDrop(extinguisher: extinguisher, on: fireType)
+                            VStack(alignment: .leading, spacing: 8) {
+                                Label("Use on:", systemImage: "checkmark.circle.fill")
+                                    .font(.headline)
+                                    .foregroundStyle(.green)
+                                
+                                ForEach(extinguisher.compatibleFires, id: \.self) { fire in
+                                    Text("• \(fire)")
+                                        .font(.body)
+                                }
+                            }
+                            
+                            Divider()
+                            
+                            VStack(alignment: .leading, spacing: 8) {
+                                Label("Do NOT use on:", systemImage: "xmark.circle.fill")
+                                    .font(.headline)
+                                    .foregroundStyle(.red)
+                                
+                                ForEach(extinguisher.incompatibleFires, id: \.self) { fire in
+                                    Text("• \(fire)")
+                                        .font(.body)
                                 }
                             }
                         }
-                        .padding(.horizontal)
-                        
-                        // Extinguishers (Drag Sources)
-                        VStack(spacing: 16) {
-                            Text("Extinguishers")
-                                .font(.headline)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            
-                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 100))], spacing: 12) {
-                                ForEach(ExtinguisherType.allCases) { extinguisher in
-                                    ExtinguisherDragView(extinguisher: extinguisher)
-                                }
-                            }
-                        }
-                        .padding(.horizontal)
-                        
-                        // Instructions
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("💡 Quick Guide:")
-                                .font(.headline)
-                            
-                            Text("• Water 💧 → Class A (Wood, Paper)")
-                            Text("• Foam 🧯 → Class A & B (Liquids)")
-                            Text("• CO2 🧯 → Class B & C (Electrical)")
-                            Text("• Dry Powder 🧂 → Class D (Metal)")
-                        }
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
                         .padding()
-                        .background(Color(.systemGray6))
-                        .cornerRadius(12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color(.systemBackground))
+                                .shadow(color: extinguisher.color.opacity(0.2), radius: 8)
+                        )
                         .padding(.horizontal)
                     }
-                    .padding(.vertical)
-                }
-                
-                // Feedback overlay
-                if showFeedback {
-                    FeedbackOverlay(message: feedbackMessage, isCorrect: isCorrect)
-                        .transition(.scale.combined(with: .opacity))
+                    
+                    // Quick Reference
+                    VStack(spacing: 16) {
+                        Text("Quick Reference")
+                            .font(.title2.bold())
+                        
+                        HStack(spacing: 20) {
+                            quickRefCard(icon: "flame.fill", text: "Class A\nWood/Paper", color: .brown, extinguisher: "💧 Water")
+                            quickRefCard(icon: "bolt.fill", text: "Class C\nElectrical", color: .yellow, extinguisher: "🧯 CO2")
+                        }
+                        
+                        HStack(spacing: 20) {
+                            quickRefCard(icon: "flask.fill", text: "Class B\nChemical", color: .purple, extinguisher: "🧯 Foam")
+                            quickRefCard(icon: "sparkles", text: "Class D\nMetal/Firecracker", color: .orange, extinguisher: "🧂 Powder")
+                        }
+                    }
+                    .padding()
                 }
             }
-            .navigationTitle("Extinguisher Guide")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Done") {
-                        if score >= 4 {
-                            badgeManager.unlockBadge(id: "extinguisher_pro")
-                        }
-                        dismiss()
+                    Button("Back") {
+                        gameState.currentScreen = .home
                     }
                 }
             }
         }
     }
     
-    private func handleDrop(extinguisher: ExtinguisherType, on fireType: FireType) {
-        attempts += 1
-        
-        let compatible = ExtinguisherGuide.isCompatible(extinguisher: extinguisher, fireType: fireType)
-        
-        if compatible {
-            score += 10
-            isCorrect = true
-            feedbackMessage = "✅ Correct! \(extinguisher.rawValue) works on \(fireType.name)"
-            soundManager.playSuccess()
-            HapticManager.shared.success()
-        } else {
-            isCorrect = false
-            feedbackMessage = "❌ Wrong! \(extinguisher.rawValue) is not safe for \(fireType.name)"
-            soundManager.playError()
-            HapticManager.shared.error()
-        }
-        
-        withAnimation {
-            showFeedback = true
-        }
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
-            guard let self = self else { return }
-            withAnimation {
-                self.showFeedback = false
-            }
-        }
-    }
-}
-
-struct FireTypeDropTarget: View {
-    let fireType: FireType
-    let onDrop: (ExtinguisherType) -> Void
-    
-    @State private var isTargeted = false
-    
-    var body: some View {
+    private func quickRefCard(icon: String, text: String, color: Color, extinguisher: String) -> some View {
         VStack(spacing: 8) {
-            HStack {
-                Text(fireType.icon)
-                    .font(.system(size: 30))
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(fireType.name)
-                        .font(.headline)
-                    
-                    Text(fireType.materials)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                
-                Spacer()
-            }
-            .padding()
-            .background(isTargeted ? fireType.color.opacity(0.3) : Color(.systemGray6))
-            .cornerRadius(12)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(isTargeted ? fireType.color : Color.clear, lineWidth: 2)
-            )
-        }
-        .onDrop(of: [.text], isTargeted: $isTargeted) { providers in
-            providers.first?.loadItem(forTypeIdentifier: "public.text", options: nil) { data, error in
-                if let data = data as? Data,
-                   let text = String(data: data, encoding: .utf8),
-                   let extinguisher = ExtinguisherType(rawValue: text) {
-                    DispatchQueue.main.async {
-                        onDrop(extinguisher)
-                    }
-                }
-            }
-            return true
-        }
-    }
-}
-
-struct ExtinguisherDragView: View {
-    let extinguisher: ExtinguisherType
-    
-    var body: some View {
-        VStack(spacing: 8) {
-            Text(extinguisher.icon)
-                .font(.system(size: 40))
+            Image(systemName: icon)
+                .font(.largeTitle)
+                .foregroundStyle(color.gradient)
             
-            Text(extinguisher.rawValue)
-                .font(.caption.bold())
+            Text(text)
+                .font(.caption)
                 .multilineTextAlignment(.center)
+            
+            Text(extinguisher)
+                .font(.title3)
         }
-        .frame(width: 100, height: 100)
-        .background(extinguisher.color.opacity(0.2))
-        .cornerRadius(12)
-        .onDrag {
-            NSItemProvider(object: extinguisher.rawValue as NSString)
-        }
+        .frame(maxWidth: .infinity)
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(.secondarySystemBackground))
+        )
     }
 }
 
-struct FeedbackOverlay: View {
-    let message: String
-    let isCorrect: Bool
-    
-    var body: some View {
-        VStack {
-            Spacer()
-            
-            Text(message)
-                .font(.headline)
-                .foregroundStyle(.white)
-                .padding()
-                .background(isCorrect ? Color.green : Color.red)
-                .cornerRadius(12)
-                .padding()
-            
-            Spacer()
-                .frame(height: 200)
-        }
-    }
+#Preview {
+    ExtinguisherGuideView(gameState: GameState())
 }
