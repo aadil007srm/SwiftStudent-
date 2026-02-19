@@ -79,29 +79,6 @@ struct HomeScreen: View {
                         FloatingStatsCard(gameState: gameState)
                             .padding(.horizontal)
                     }
-                    
-                    // About Section
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("About Safe60")
-                            .font(.caption.bold())
-                            .foregroundStyle(.secondary)
-                        
-                        Text("Emergency response training app designed for factory workers and safety-conscious professionals.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        
-                        Text("Version 1.0 • Swift Student Challenge 2025")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding()
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color(.secondarySystemBackground))
-                    )
-                    .padding(.horizontal)
-                    .padding(.bottom, 24)
                 }
                 .padding(.top)
             }

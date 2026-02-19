@@ -4,8 +4,7 @@ struct PowerSafetyView: View {
     @ObservedObject var gameState: GameState
     
     var body: some View {
-        NavigationStack {
-            ScrollView {
+        ScrollView {
                 VStack(spacing: 24) {
                     // Header
                     VStack(spacing: 12) {
@@ -91,7 +90,6 @@ struct PowerSafetyView: View {
                 .padding()
             }
             .navigationBarTitleDisplayMode(.inline)
-        }
     }
 }
 

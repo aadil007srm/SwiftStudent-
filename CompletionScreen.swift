@@ -174,24 +174,6 @@ struct CompletionScreen: View {
                                 .shadow(color: Color.safe60Red.opacity(0.3), radius: 8, x: 0, y: 4)
                             }
                             
-                            // Go Home Button
-                            Button {
-                                withAnimation {
-                                    gameState.currentScreen = .home
-                                }
-                            } label: {
-                                HStack {
-                                    Image(systemName: "house.fill")
-                                        .font(.title3)
-                                    Text("Back to Home")
-                                        .font(.headline)
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color(.secondarySystemBackground))
-                                .foregroundStyle(.primary)
-                                .cornerRadius(12)
-                            }
                         }
                         .padding(.horizontal)
                         .padding(.bottom, 24)
@@ -206,6 +188,20 @@ struct CompletionScreen: View {
             }
             .navigationTitle("Training Complete")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        withAnimation {
+                            gameState.currentScreen = .home
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: "chevron.left")
+                            Text("Home")
+                        }
+                    }
+                }
+            }
             .onAppear {
                 badgeManager.checkAndAwardBadges(gameState: gameState)
                 

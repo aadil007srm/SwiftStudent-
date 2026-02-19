@@ -2,11 +2,12 @@ import SwiftUI
 
 struct TrainingScreen: View {
     @ObservedObject var gameState: GameState  // ✅ Removed 'weak'
+    @StateObject private var badgeManager = BadgeManager()
     @State private var selectedChoice: String? = nil
     @State private var showResult = false
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ScrollView {
                 if let scenario = gameState.currentScenario {
                     VStack(spacing: 24) {
@@ -81,6 +82,20 @@ struct TrainingScreen: View {
             }
             .navigationTitle("Training")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        withAnimation {
+                            gameState.currentScreen = .home
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: "chevron.left")
+                            Text("Home")
+                        }
+                    }
+                }
+            }
         }
         .onAppear {
             startScenario()  // ✅ Extracted to method
@@ -95,6 +110,8 @@ struct TrainingScreen: View {
         gameState.recordDecision(correct: choice.isCorrect)
         
         Task { @MainActor in
+            badgeManager.checkAndAwardBadges(gameState: gameState)
+            
             try? await Task.sleep(nanoseconds: 2_000_000_000)
             nextScenario()
         }

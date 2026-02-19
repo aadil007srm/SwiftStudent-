@@ -10,8 +10,7 @@ struct ExtinguisherGuideView: View {
     let extinguishers = ExtinguisherType.allExtinguishers
     
     var body: some View {
-        NavigationStack {
-            ScrollView {
+        ScrollView {
                 VStack(spacing: 24) {
                     // Header
                     VStack(spacing: 8) {
@@ -95,7 +94,6 @@ struct ExtinguisherGuideView: View {
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
-        }
     }
     
     private func quickRefCard(icon: String, text: String, color: Color, extinguisher: String) -> some View {

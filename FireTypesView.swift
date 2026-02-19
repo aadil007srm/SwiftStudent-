@@ -76,8 +76,7 @@ struct FireTypesView: View {
     }
     
     var body: some View {
-        NavigationStack {
-            ScrollView {
+        ScrollView {
                 VStack(spacing: 24) {
                     // Header
                     VStack(spacing: 12) {
@@ -110,7 +109,6 @@ struct FireTypesView: View {
                 .padding()
             }
             .navigationBarTitleDisplayMode(.inline)
-        }
     }
 }
 
