@@ -52,12 +52,18 @@ struct ParticleSystem: View {
     }
     
     private func startEmitting() {
-        emitterTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
-            particles.removeAll { particle in
+        emitterTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            
+            // Limit total particle count
+            self.particles.removeAll { particle in
                 Date().timeIntervalSinceReferenceDate - particle.birthTime > particle.lifetime
             }
             
-            particles.append(contentsOf: generateParticles())
+            // Only add new particles if under limit
+            if self.particles.count < 50 {
+                self.particles.append(contentsOf: self.generateParticles())
+            }
         }
     }
     

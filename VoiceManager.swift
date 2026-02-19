@@ -3,6 +3,7 @@ import SwiftUI
 
 @MainActor
 class VoiceManager: ObservableObject {
+    @MainActor
     static let shared = VoiceManager()
     
     @Published var isVoiceEnabled: Bool = true

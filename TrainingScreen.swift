@@ -154,13 +154,17 @@ struct TrainingScreen: View {
         showParticles = false
         
         setupTimer?.invalidate()
-        setupTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
-            if setupCountdown > 0 {
-                setupCountdown -= 1
-                soundManager.playTick()
+        setupTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
+            guard let self = self else {
+                timer.invalidate()
+                return
+            }
+            if self.setupCountdown > 0 {
+                self.setupCountdown -= 1
+                self.soundManager.playTick()
             } else {
                 timer.invalidate()
-                setupTimer = nil
+                self.setupTimer = nil
             }
         }
     }

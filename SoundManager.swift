@@ -2,6 +2,7 @@ import AVFoundation
 
 @MainActor
 class SoundManager: NSObject, ObservableObject {
+    @MainActor
     static let shared = SoundManager()
     
     @Published var isSoundEnabled: Bool = true

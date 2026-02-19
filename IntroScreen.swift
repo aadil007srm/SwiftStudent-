@@ -100,25 +100,30 @@ struct IntroScreen: View {
             pulseScale = 1.15
         }
         
-        // Countdown animation
-        countdownTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { timer in
-            if countdown > 0 {
-                countdown -= 1
+        // Countdown animation - updates every second
+        countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
+            guard let self = self else {
+                timer.invalidate()
+                return
+            }
+            if self.countdown > 0 {
+                self.countdown -= 1
             } else {
-                countdown = 60
+                self.countdown = 60
             }
         }
     }
     
     private func startAutoTransition() {
-        autoTransitionTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { _ in
+        autoTransitionTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { [weak self] _ in
+            guard let self = self else { return }
             withAnimation(.spring()) {
                 // Check if user has completed onboarding
                 let hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
                 if hasCompletedOnboarding {
-                    gameState.currentScreen = .home
+                    self.gameState.currentScreen = .home
                 } else {
-                    gameState.currentScreen = .onboarding
+                    self.gameState.currentScreen = .onboarding
                 }
             }
         }

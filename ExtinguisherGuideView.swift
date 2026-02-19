@@ -136,9 +136,10 @@ struct ExtinguisherGuideView: View {
             showFeedback = true
         }
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+            guard let self = self else { return }
             withAnimation {
-                showFeedback = false
+                self.showFeedback = false
             }
         }
     }

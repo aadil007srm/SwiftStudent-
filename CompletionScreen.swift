@@ -232,7 +232,7 @@ struct CompletionScreen: View {
         let accuracy = gameState.accuracyPercentage
         if accuracy >= 90 { return "trophy.fill" }
         if accuracy >= 70 { return "star.fill" }
-        return "checkmark.seal.fill"
+        return "hand.thumbsup.fill"
     }
     
     private func resultColor() -> Color {

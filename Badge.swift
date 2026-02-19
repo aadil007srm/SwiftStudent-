@@ -124,9 +124,9 @@ class BadgeManager: ObservableObject {
             unlockBadge(id: "perfect_score")
         }
         
-        // Factory expert
+        // Factory expert - only unlock when all scenarios are completed
         if gameState.selectedEnvironment == .factory && 
-           gameState.currentScenarioIndex >= gameState.scenarios.count - 1 {
+           gameState.currentScenarioIndex > gameState.scenarios.count - 1 {
             unlockBadge(id: "factory_expert")
         }
     }
