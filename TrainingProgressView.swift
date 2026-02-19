@@ -1,7 +1,7 @@
 import SwiftUI
 import Charts
 
-struct ProgressView: View {
+struct TrainingProgressView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var performanceTracker = PerformanceTracker()
     @StateObject private var badgeManager = BadgeManager()

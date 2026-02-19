@@ -22,9 +22,23 @@ struct Scenario: Identifiable {
         self.choices = choices
         self.environment = environment
         self.hazards = hazards
-        self.steps = steps.isEmpty ? [DecisionStep(prompt: "What should you do?", choices: choices, correctChoiceId: choices.first(where: { $0.isCorrect })?.id ?? "", consequence: consequence)] : steps
         self.timeLimit = timeLimit
         self.consequence = consequence
+        
+        // Create default step if no steps provided
+        if steps.isEmpty {
+            let correctChoiceId = choices.first(where: { $0.isCorrect })?.id ?? ""
+            self.steps = [
+                DecisionStep(
+                    prompt: "What should you do?",
+                    choices: choices,
+                    correctChoiceId: correctChoiceId,
+                    consequence: consequence
+                )
+            ]
+        } else {
+            self.steps = steps
+        }
     }
 }
 

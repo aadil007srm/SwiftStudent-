@@ -183,7 +183,7 @@ struct HomeScreen: View {
                 PowerSafetyView()
             }
             .sheet(isPresented: $showProgress) {
-                ProgressView()
+                TrainingProgressView()
             }
             .sheet(isPresented: $showSettings) {
                 SettingsView()

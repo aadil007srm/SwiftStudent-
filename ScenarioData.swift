@@ -98,7 +98,7 @@ struct ScenarioData {
         Scenario(
             title: "Oven Fire",
             description: "The oven is on fire with smoke.",
-            imageIcon: "flame.fill",
+            imageIcon: "oven.fill",
             choices: [
                 Choice(id: "1", text: "Keep door closed, turn off", isCorrect: true, explanation: "Starve fire of oxygen"),
                 Choice(id: "2", text: "Open door", isCorrect: false, explanation: "Oxygen will make it worse"),

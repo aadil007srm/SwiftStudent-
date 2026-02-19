@@ -3,6 +3,7 @@ import SwiftUI
 struct ParticleSystem: View {
     let type: ParticleType
     @State private var particles: [Particle] = []
+    @State private var emitterTimer: Timer?
     
     enum ParticleType {
         case fire
@@ -45,16 +46,24 @@ struct ParticleSystem: View {
         .onAppear {
             startEmitting()
         }
+        .onDisappear {
+            stopEmitting()
+        }
     }
     
     private func startEmitting() {
-        Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
+        emitterTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
             particles.removeAll { particle in
                 Date().timeIntervalSinceReferenceDate - particle.birthTime > particle.lifetime
             }
             
             particles.append(contentsOf: generateParticles())
         }
+    }
+    
+    private func stopEmitting() {
+        emitterTimer?.invalidate()
+        emitterTimer = nil
     }
     
     private func generateParticles() -> [Particle] {

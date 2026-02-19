@@ -8,6 +8,7 @@ struct TrainingScreen: View {
     @State private var showScenarioSetup = true
     @State private var setupCountdown = 3
     @State private var showParticles = false
+    @State private var setupTimer: Timer?
     
     var body: some View {
         ZStack {
@@ -138,6 +139,11 @@ struct TrainingScreen: View {
         .onAppear {
             setupScenario()
         }
+        .onDisappear {
+            setupTimer?.invalidate()
+            setupTimer = nil
+            gameState.timerManager.stopTimer()
+        }
     }
     
     private func setupScenario() {
@@ -147,12 +153,14 @@ struct TrainingScreen: View {
         showResult = false
         showParticles = false
         
-        Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
+        setupTimer?.invalidate()
+        setupTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
             if setupCountdown > 0 {
                 setupCountdown -= 1
                 soundManager.playTick()
             } else {
                 timer.invalidate()
+                setupTimer = nil
             }
         }
     }

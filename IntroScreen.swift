@@ -6,6 +6,7 @@ struct IntroScreen: View {
     @State private var countdown = 60
     @State private var pulseScale: CGFloat = 1.0
     @State private var autoTransitionTimer: Timer?
+    @State private var countdownTimer: Timer?
     
     var body: some View {
         ZStack {
@@ -83,6 +84,9 @@ struct IntroScreen: View {
         }
         .onDisappear {
             autoTransitionTimer?.invalidate()
+            autoTransitionTimer = nil
+            countdownTimer?.invalidate()
+            countdownTimer = nil
         }
     }
     
@@ -97,11 +101,10 @@ struct IntroScreen: View {
         }
         
         // Countdown animation
-        Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { timer in
+        countdownTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { timer in
             if countdown > 0 {
                 countdown -= 1
             } else {
-                timer.invalidate()
                 countdown = 60
             }
         }
