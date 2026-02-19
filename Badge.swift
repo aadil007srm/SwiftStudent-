@@ -165,13 +165,6 @@ struct BadgesCollectionView: View {
             }
             .navigationTitle("Badges")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Back") {
-                        gameState.currentScreen = .home
-                    }
-                }
-            }
             .onAppear {
                 badgeManager.checkAndAwardBadges(gameState: gameState)
             }

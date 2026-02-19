@@ -95,13 +95,6 @@ struct ExtinguisherGuideView: View {
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Back") {
-                        gameState.currentScreen = .home
-                    }
-                }
-            }
         }
     }
     

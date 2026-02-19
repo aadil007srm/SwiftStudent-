@@ -43,13 +43,6 @@ struct EnvironmentSelectionScreen: View {
             }
             .navigationTitle("Choose Environment")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Back") {
-                        gameState.currentScreen = .home
-                    }
-                }
-            }
         }
     }
 }
