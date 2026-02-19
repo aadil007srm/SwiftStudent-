@@ -18,6 +18,7 @@ class GameState: ObservableObject {
     @Published var totalDecisions: Int = 0
     @Published var correctDecisions: Int = 0
     @Published var timerManager = TimerManager()
+    @Published var badgesEarnedThisSession: Set<String> = []  // Track new badges
     
     var scenarios: [Scenario] = []
     var currentScenario: Scenario? {
@@ -32,6 +33,7 @@ class GameState: ObservableObject {
     func loadScenarios(for environment: EnvironmentType) {
         scenarios = ScenarioData.scenarios(for: environment)
         currentScenarioIndex = 0
+        badgesEarnedThisSession.removeAll()  // Reset for new session
     }
     
     func nextScenario() {
@@ -60,5 +62,6 @@ class GameState: ObservableObject {
         totalDecisions = 0
         correctDecisions = 0
         timerManager.reset()
+        badgesEarnedThisSession.removeAll()
     }
 }

@@ -35,7 +35,7 @@ struct HomeScreen: View {
                             
                             // Learn Basics Card
                             NavigationLink {
-                                LearnBasicsView(gameState: gameState)
+                                SafetyFundamentalsView(gameState: gameState)
                             } label: {
                                 ActionCardLabel(
                                     icon: "book.fill",
@@ -259,8 +259,8 @@ struct ActionCardLabel: View {
     }
 }
 
-// MARK: - Learn Basics Hub View
-struct LearnBasicsView: View {
+// MARK: - Safety Fundamentals Hub View
+struct SafetyFundamentalsView: View {
     @ObservedObject var gameState: GameState
     
     var body: some View {

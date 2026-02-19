@@ -230,7 +230,7 @@ struct CompletionScreen: View {
     }
     
     private func getNewlyEarnedBadges() -> [Badge] {
-        return BadgeManager.allBadges.filter { badgeManager.earnedBadges.contains($0.name) }
+        return BadgeManager.allBadges.filter { gameState.badgesEarnedThisSession.contains($0.name) }
     }
     
     private func resultIcon() -> String {
