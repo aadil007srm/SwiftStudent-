@@ -5,6 +5,8 @@ class EvacuationGameState: ObservableObject {
     // MARK: - Timer
     @Published var timeRemaining: Int = 60
     @Published var timerColor: Color = .green
+    let initialTime: Int = 60
+    static let gameDuration: Int = 60
 
     // MARK: - Map elements
     @Published var selectedMap: MapLayout = MapDataProvider.labMaps[0]
@@ -57,7 +59,7 @@ class EvacuationGameState: ObservableObject {
         routeDistance    = 0
         score            = 0
         grade            = ""
-        timeRemaining    = 60
+        timeRemaining    = initialTime
         timerColor       = .green
         gamePhase        = .planning
     }

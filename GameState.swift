@@ -42,6 +42,9 @@ class GameState: ObservableObject {
     @Published var sRankEvacuations: Int {
         didSet { UserDefaults.standard.set(sRankEvacuations, forKey: "sRankEvacuations") }
     }
+    @Published var fastEvacuations: Int {
+        didSet { UserDefaults.standard.set(fastEvacuations, forKey: "fastEvacuations") }
+    }
 
     var scenarios: [Scenario] = []
     var currentScenario: Scenario? {
@@ -62,6 +65,7 @@ class GameState: ObservableObject {
         self.evacuationMapsCompleted = UserDefaults.standard.integer(forKey: "evacuationMapsCompleted")
         self.totalPeopleRescued = UserDefaults.standard.integer(forKey: "totalPeopleRescued")
         self.sRankEvacuations = UserDefaults.standard.integer(forKey: "sRankEvacuations")
+        self.fastEvacuations = UserDefaults.standard.integer(forKey: "fastEvacuations")
     }
 
     func loadScenarios(for environment: EnvironmentType) {

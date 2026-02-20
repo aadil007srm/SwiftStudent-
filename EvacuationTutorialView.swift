@@ -17,7 +17,7 @@ struct EvacuationTutorialView: View {
                     TutorialStep(icon: "flame.fill",           text: "Avoid fire (red) and heavy smoke (gray)")
                     TutorialStep(icon: "person.2.fill",        text: "Pass through trapped people to rescue them")
                     TutorialStep(icon: "door.left.hand.open",  text: "End near a green exit door")
-                    TutorialStep(icon: "timer",                text: "Complete before the 60-second timer runs out!")
+                    TutorialStep(icon: "timer",                text: "Complete before the \(EvacuationGameState.gameDuration)-second timer runs out!")
                 }
                 .padding()
                 .background(Color(.systemBackground))

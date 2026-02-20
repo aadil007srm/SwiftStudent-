@@ -165,8 +165,7 @@ class BadgeManager: ObservableObject {
         case .rescuePeople(let count):
             return gameState.totalPeopleRescued >= count
         case .evacuateTime:
-            // Requires additional per-game tracking; handled via sRankEvacuations proxy
-            return false
+            return gameState.fastEvacuations >= 1
         case .sRankCount(let count):
             return gameState.sRankEvacuations >= count
         }

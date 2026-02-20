@@ -33,7 +33,7 @@ struct EvacuationResultsView: View {
                         HStack(spacing: 16) {
                             StatCard(
                                 icon: "timer",
-                                value: "\(60 - evacuationGame.timeRemaining)s",
+                                value: "\(evacuationGame.initialTime - evacuationGame.timeRemaining)s",
                                 label: "Time Used",
                                 color: .blue
                             )
@@ -139,6 +139,9 @@ struct EvacuationResultsView: View {
         gameState.totalPeopleRescued += evacuationGame.rescuedPeople.count
         if evacuationGame.grade == "S" {
             gameState.sRankEvacuations += 1
+        }
+        if evacuationGame.timeRemaining >= 30 {
+            gameState.fastEvacuations += 1
         }
     }
 }
