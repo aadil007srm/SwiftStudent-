@@ -1,39 +1,43 @@
 import SwiftUI
-import Combine
 
-@MainActor  // ✅ Added MainActor
+@MainActor
 class TimerManager: ObservableObject {
     @Published var timeRemaining: Int = 60
-    private var timer: AnyCancellable?
-    var onTimeUp: (() -> Void)?
+    private var timer: Timer?
+    private var onTimeout: (() -> Void)?
     
     func startTimer(duration: Int = 60, onComplete: (() -> Void)? = nil) {
-        timeRemaining = duration
-        onTimeUp = onComplete
+        self.timeRemaining = duration
+        self.onTimeout = onComplete
         
-        timer = Timer.publish(every: 1, on: .main, in: .common)
-            .autoconnect()
-            .sink { [weak self] _ in
-                guard let self = self else { return }
-                if self.timeRemaining > 0 {
-                    self.timeRemaining -= 1
-                } else {
-                    self.stopTimer()
-                    self.onTimeUp?()
-                }
+        timer?.invalidate()
+        let newTimer = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            if self.timeRemaining > 0 {
+                self.timeRemaining -= 1
+            } else {
+                self.timer?.invalidate()
+                self.timer = nil
+                self.onTimeout?()
             }
+        }
+        RunLoop.main.add(newTimer, forMode: .common)
+        timer = newTimer
     }
     
     func stopTimer() {
-        timer?.cancel()
+        timer?.invalidate()
+        timer = nil
     }
     
     func pauseTimer() {
-        timer?.cancel()
+        timer?.invalidate()
+        timer = nil
     }
     
     func reset() {
-        stopTimer()
+        timer?.invalidate()
+        timer = nil
         timeRemaining = 60
     }
 }

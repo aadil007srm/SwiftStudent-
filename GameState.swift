@@ -13,10 +13,18 @@ class GameState: ObservableObject {
     @Published var currentScreen: AppScreen = .intro
     @Published var selectedEnvironment: EnvironmentType = .lab
     @Published var currentScenarioIndex: Int = 0
-    @Published var score: Int = 0
-    @Published var mistakes: Int = 0
-    @Published var totalDecisions: Int = 0
-    @Published var correctDecisions: Int = 0
+    @Published var score: Int = UserDefaults.standard.integer(forKey: "score") {
+        didSet { UserDefaults.standard.set(score, forKey: "score") }
+    }
+    @Published var mistakes: Int = UserDefaults.standard.integer(forKey: "mistakes") {
+        didSet { UserDefaults.standard.set(mistakes, forKey: "mistakes") }
+    }
+    @Published var totalDecisions: Int = UserDefaults.standard.integer(forKey: "totalDecisions") {
+        didSet { UserDefaults.standard.set(totalDecisions, forKey: "totalDecisions") }
+    }
+    @Published var correctDecisions: Int = UserDefaults.standard.integer(forKey: "correctDecisions") {
+        didSet { UserDefaults.standard.set(correctDecisions, forKey: "correctDecisions") }
+    }
     @Published var timerManager = TimerManager()
     @Published var badgesEarnedThisSession: Set<String> = []  // Track new badges
     
