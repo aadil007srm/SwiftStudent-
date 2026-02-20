@@ -31,13 +31,13 @@ struct EvacuationResultsView: View {
                     // Stats grid
                     VStack(spacing: 16) {
                         HStack(spacing: 16) {
-                            StatCard(
+                            EvacStatCard(
                                 icon: "timer",
                                 value: "\(evacuationGame.initialTime - evacuationGame.timeRemaining)s",
                                 label: "Time Used",
                                 color: .blue
                             )
-                            StatCard(
+                            EvacStatCard(
                                 icon: "person.2.fill",
                                 value: "\(evacuationGame.rescuedPeople.count)",
                                 label: "Saved",
@@ -45,13 +45,13 @@ struct EvacuationResultsView: View {
                             )
                         }
                         HStack(spacing: 16) {
-                            StatCard(
+                            EvacStatCard(
                                 icon: "arrow.triangle.branch",
                                 value: "\(Int(evacuationGame.routeDistance))m",
                                 label: "Distance",
                                 color: .orange
                             )
-                            StatCard(
+                            EvacStatCard(
                                 icon: "shield.fill",
                                 value: "\(evacuationGame.routeSafetyScore)%",
                                 label: "Safety",
@@ -146,8 +146,8 @@ struct EvacuationResultsView: View {
     }
 }
 
-// MARK: - Stat Card
-private struct StatCard: View {
+// MARK: - Evacuation Stat Card (renamed to avoid conflicts)
+private struct EvacStatCard: View {
     let icon: String
     let value: String
     let label: String

@@ -93,8 +93,7 @@ class EvacuationGameState: ObservableObject {
         fireSpreadTimer?.invalidate()
         let t = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
-                guard let self, self.gamePhase == .planning || self.gamePhase == .executing else { return }
-                self.spreadFire()
+                self?.spreadFire()
             }
         }
         RunLoop.main.add(t, forMode: .common)
@@ -102,126 +101,121 @@ class EvacuationGameState: ObservableObject {
     }
 
     private func spreadFire() {
-        fireLocations = FireSpreadEngine.calculateSpread(from: fireLocations, walls: selectedMap.walls)
-        smokeZones    = FireSpreadEngine.generateSmoke(from: fireLocations)
-        updateExitDoorStatuses()
+        let newFires = FireSpreadEngine.calculateSpread(
+            from: fireLocations,
+            walls: selectedMap.walls,
+            timeElapsed: initialTime - timeRemaining
+        )
+        fireLocations = newFires
+        smokeZones = FireSpreadEngine.generateSmoke(from: fireLocations)
+        updateExitStatus()
     }
 
-    private func updateExitDoorStatuses() {
-        exitDoors = exitDoors.map { door in
-            var d = door
-            let blocked = fireLocations.contains {
-                FireSpreadEngine.distance($0.position, door.position) < 40
+    private func updateExitStatus() {
+        for i in exitDoors.indices {
+            let exit = exitDoors[i]
+            let nearbyFires = fireLocations.filter { fire in
+                distance(from: fire.position, to: exit.position) < 40
             }
-            let smoky = smokeZones.contains {
-                $0.density == .medium && FireSpreadEngine.distance($0.center, door.position) < $0.radius
-            }
-            d.status = blocked ? .blocked : smoky ? .risky : .safe
-            return d
-        }
-    }
-
-    // MARK: - Drawing
-    func canDrawAt(_ point: CGPoint) -> Bool {
-        guard gamePhase == .planning else { return false }
-        return !FireSpreadEngine.isHazardous(point, fires: fireLocations, smokeZones: smokeZones)
-    }
-
-    func validateAndScoreRoute(_ path: [CGPoint]) {
-        drawnRoute = path
-        guard !path.isEmpty else {
-            rescuedPeople    = []
-            routeSafetyScore = 100
-            routeDistance    = 0
-            return
-        }
-
-        // Check for rescued people
-        rescuedPeople = trappedPeople.filter { person in
-            path.contains { FireSpreadEngine.distance($0, person.position) < 30 }
-        }
-
-        // Safety score: penalise smoke exposure
-        var penalty = 0
-        for point in path {
-            for smoke in smokeZones where smoke.density != .light {
-                if FireSpreadEngine.distance(point, smoke.center) < smoke.radius {
-                    penalty += 2
+            
+            if !nearbyFires.isEmpty {
+                exitDoors[i].status = .blocked
+            } else {
+                let nearbySmoke = smokeZones.filter { smoke in
+                    distance(from: smoke.center, to: exit.position) < 60
                 }
+                exitDoors[i].status = nearbySmoke.isEmpty ? .safe : .risky
             }
-        }
-        routeSafetyScore = max(0, 100 - penalty)
-
-        // Route distance
-        routeDistance = zip(path, path.dropFirst()).reduce(0) { acc, pair in
-            acc + FireSpreadEngine.distance(pair.0, pair.1)
-        }
-
-        // Mark extinguishers used
-        extinguishers = extinguishers.map { ext in
-            var e = ext
-            if path.contains(where: { FireSpreadEngine.distance($0, ext.position) < 30 }) {
-                e.isUsed = true
-            }
-            return e
         }
     }
 
-    // MARK: - Finish
-    func finishEvacuation() {
-        guard gamePhase != .completed else { return }
-        stopTimers()
-        score = calculateScore()
-        grade = calculateGrade(score)
+    // MARK: - Route Management
+    func validateRoute(_ path: [CGPoint]) {
+        guard !path.isEmpty else { return }
+        
+        // Store the drawn route
+        drawnRoute = path
+        
+        // Calculate route distance
+        routeDistance = 0
+        for i in 0..<(path.count - 1) {
+            routeDistance += distance(from: path[i], to: path[i + 1])
+        }
+        
+        // Calculate safety score
+        var safetyPoints = 100
+        for point in path {
+            if FireSpreadEngine.isInFire(point, fires: fireLocations) {
+                safetyPoints -= 30
+            }
+            if FireSpreadEngine.isInHeavySmoke(point, smokeZones: smokeZones) {
+                safetyPoints -= 10
+            }
+        }
+        routeSafetyScore = max(0, safetyPoints)
+        
+        // Check rescued people
+        for person in trappedPeople where !rescuedPeople.contains(where: { $0.id == person.id }) {
+            if path.contains(where: { distance(from: $0, to: person.position) < 20 }) {
+                var rescuedPerson = person
+                rescuedPerson.isRescued = true
+                rescuedPeople.append(rescuedPerson)
+            }
+        }
+        
+        // Provide haptic feedback based on safety score
+        if routeSafetyScore >= 80 {
+            HapticManager.shared.success()
+        } else if routeSafetyScore >= 50 {
+            HapticManager.shared.warning()
+        } else {
+            HapticManager.shared.error()
+        }
+    }
+
+    func completeEvacuation() {
+        countdownTimer?.invalidate()
+        fireSpreadTimer?.invalidate()
+        calculateFinalScore()
         gamePhase = .completed
+    }
+
+    private func calculateFinalScore() {
+        score = 1000
+        score += timeRemaining * 10
+        score += rescuedPeople.count * 100
+        score += routeSafetyScore >= 90 ? 200 : 0
+        score = max(0, score)
+        
+        // Assign grade
+        if score >= 1800 { grade = "S" }
+        else if score >= 1500 { grade = "A" }
+        else if score >= 1200 { grade = "B" }
+        else if score >= 900 { grade = "C" }
+        else if score >= 600 { grade = "D" }
+        else { grade = "F" }
     }
 
     private func gameOver(success: Bool) {
-        stopTimers()
-        if success {
-            score = calculateScore()
-            grade = calculateGrade(score)
-        } else {
-            score = max(0, calculateScore() / 2)
+        countdownTimer?.invalidate()
+        fireSpreadTimer?.invalidate()
+        if !success {
+            score = 0
             grade = "F"
+        } else {
+            calculateFinalScore()
         }
         gamePhase = .completed
     }
 
-    private func stopTimers() {
-        countdownTimer?.invalidate()
-        countdownTimer = nil
-        fireSpreadTimer?.invalidate()
-        fireSpreadTimer = nil
-    }
-
-    private func calculateScore() -> Int {
-        var total = 1000
-        total += timeRemaining * 10
-        total += rescuedPeople.count * 100
-        if routeSafetyScore >= 90 { total += 200 }
-        let usedExtinguishers = extinguishers.filter(\.isUsed).count
-        total += usedExtinguishers * 150
-        if routeSafetyScore < 50 { total -= 100 }
-        return max(0, total)
-    }
-
-    private func calculateGrade(_ s: Int) -> String {
-        switch s {
-        case 1800...: return "S"
-        case 1500..<1800: return "A"
-        case 1200..<1500: return "B"
-        case 900..<1200: return "C"
-        case 600..<900: return "D"
-        default: return "F"
-        }
-    }
-
-    // MARK: - Reset
     func resetGame() {
-        stopTimers()
-        loadMap()
-        startTimer()
-        startFireSpread()
+        countdownTimer?.invalidate()
+        fireSpreadTimer?.invalidate()
+        startGame(with: selectedMap)
+    }
+
+    // MARK: - Helper Functions
+    private func distance(from p1: CGPoint, to p2: CGPoint) -> CGFloat {
+        sqrt(pow(p2.x - p1.x, 2) + pow(p2.y - p1.y, 2))
     }
 }

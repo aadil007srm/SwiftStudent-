@@ -115,242 +115,143 @@ struct EvacuationMapView: View {
                 // Smoke zones
                 ForEach(evacuationGame.smokeZones) { smoke in
                     Circle()
-                        .fill(Color.smokeGray.opacity(smoke.density.opacity))
-                        .frame(width: scaled(smoke.radius * 2, in: geo.size),
-                               height: scaled(smoke.radius * 2, in: geo.size))
+                        .fill(Color.gray.opacity(0.3))
+                        .frame(width: smoke.radius * 2, height: smoke.radius * 2)
                         .position(scaledPoint(smoke.center, in: geo.size))
-                        .allowsHitTesting(false)
                 }
 
                 // Exit doors
-                ForEach(evacuationGame.exitDoors) { door in
-                    DoorMarker(status: door.status)
-                        .position(scaledPoint(door.position, in: geo.size))
-                }
-
-                // Extinguishers
-                ForEach(evacuationGame.extinguishers) { ext in
-                    Image(systemName: ext.isUsed ? "checkmark.circle.fill" : "fireworks")
-                        .font(.title2)
-                        .foregroundColor(ext.isUsed ? .gray : .red)
-                        .position(scaledPoint(ext.position, in: geo.size))
+                ForEach(evacuationGame.exitDoors) { exit in
+                    ExitDoorMarker(status: exit.status)
+                        .position(scaledPoint(exit.position, in: geo.size))
                 }
 
                 // Trapped people
-                ForEach(evacuationGame.trappedPeople) { person in
-                    if !evacuationGame.rescuedPeople.contains(where: { $0.id == person.id }) {
-                        Image(systemName: "person.fill.questionmark")
-                            .font(.title2)
-                            .foregroundColor(.orange)
-                            .position(scaledPoint(person.position, in: geo.size))
-                    }
-                }
-
-                // Rescued people (check marks)
-                ForEach(evacuationGame.rescuedPeople) { person in
-                    Image(systemName: "person.fill.checkmark")
-                        .font(.title2)
-                        .foregroundColor(.green)
+                ForEach(evacuationGame.trappedPeople.filter { !$0.isRescued }) { person in
+                    PersonMarker()
                         .position(scaledPoint(person.position, in: geo.size))
                 }
 
-                // Player start position
+                // Player position
                 Image(systemName: "figure.walk")
                     .font(.title2)
-                    .foregroundColor(.safe60Info)
+                    .foregroundColor(.blue)
                     .position(scaledPoint(evacuationGame.playerPosition, in: geo.size))
 
-                // Drawing canvas (on top)
-                if evacuationGame.gamePhase == .planning {
-                    ScaledDrawingCanvasView(
-                        path: $drawnPath,
-                        evacuationGame: evacuationGame,
-                        mapSize: geo.size
-                    )
-                }
+                // Drawn path
+                DrawingCanvasView(
+                    path: $drawnPath,
+                    evacuationGame: evacuationGame,
+                    toMapCoords: { screenPoint in
+                        CGPoint(
+                            x: screenPoint.x * 320 / geo.size.width,
+                            y: screenPoint.y * 320 / geo.size.height
+                        )
+                    }
+                )
             }
         }
-        .background(Color.hallwayColor)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
     }
 
     // MARK: - Floor Plan
     private var floorPlanView: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .topLeading) {
-                // Draw rooms
-                ForEach(evacuationGame.selectedMap.rooms.indices, id: \.self) { idx in
-                    let room = evacuationGame.selectedMap.rooms[idx]
-                    let scaled = scaleRect(room.frame, in: geo.size)
-                    Rectangle()
-                        .fill(roomColor(room.type))
-                        .frame(width: scaled.width, height: scaled.height)
-                        .overlay(RoundedRectangle(cornerRadius: 2).stroke(Color.wallColor, lineWidth: 1.5))
-                        .position(x: scaled.midX, y: scaled.midY)
-                }
-                // Draw hallways
-                ForEach(evacuationGame.selectedMap.hallways.indices, id: \.self) { idx in
-                    let hallway = evacuationGame.selectedMap.hallways[idx]
-                    let scaled = scaleRect(hallway.frame, in: geo.size)
-                    Rectangle()
-                        .fill(Color.hallwayColor)
-                        .frame(width: scaled.width, height: scaled.height)
-                        .position(x: scaled.midX, y: scaled.midY)
-                }
+        ZStack {
+            Color.evacuationBackground
+            
+            // Draw rooms
+            ForEach(evacuationGame.selectedMap.rooms.indices, id: \.self) { idx in
+                let room = evacuationGame.selectedMap.rooms[idx]
+                Rectangle()
+                    .fill(Color.gray.opacity(0.1))
+                    .frame(width: room.frame.width, height: room.frame.height)
+                    .position(x: room.frame.midX, y: room.frame.midY)
+                    .overlay(
+                        Text(room.name)
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                            .position(x: room.frame.midX, y: room.frame.midY)
+                    )
+            }
+            
+            // Draw hallways
+            ForEach(evacuationGame.selectedMap.hallways.indices, id: \.self) { idx in
+                let hall = evacuationGame.selectedMap.hallways[idx]
+                Rectangle()
+                    .fill(Color.gray.opacity(0.05))
+                    .frame(width: hall.frame.width, height: hall.frame.height)
+                    .position(x: hall.frame.midX, y: hall.frame.midY)
             }
         }
     }
 
     // MARK: - Controls
     private var controlsView: some View {
-        HStack(spacing: 16) {
-            // Clear route
+        HStack(spacing: 12) {
             Button {
-                drawnPath = []
-                evacuationGame.validateAndScoreRoute([])
+                evacuationGame.validateRoute(drawnPath)
             } label: {
-                HStack {
-                    Image(systemName: "xmark.circle.fill")
-                    Text("Clear")
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .background(Color(.secondarySystemBackground))
-                .foregroundColor(.primary)
-                .cornerRadius(12)
+                Text("Validate Route")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.blue)
+                    .cornerRadius(12)
             }
-
-            // Confirm evacuation
+            .disabled(drawnPath.isEmpty)
+            
             Button {
-                evacuationGame.finishEvacuation()
+                evacuationGame.completeEvacuation()
             } label: {
-                HStack {
-                    Image(systemName: "checkmark.circle.fill")
-                    Text("Evacuate!")
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .background(Color.safe60Red)
-                .foregroundColor(.white)
-                .cornerRadius(12)
+                Text("Evacuate!")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.green)
+                    .cornerRadius(12)
             }
-            .disabled(drawnPath.count < 2)
-            .opacity(drawnPath.count < 2 ? 0.5 : 1)
+            .disabled(drawnPath.isEmpty)
         }
         .padding()
-        .background(Color(.secondarySystemBackground))
     }
 
-    // MARK: - Scaling helpers (map coords → screen)
-    private let mapReferenceSize = CGSize(width: 320, height: 320)
-
+    // MARK: - Helper Functions
     private func scaledPoint(_ point: CGPoint, in size: CGSize) -> CGPoint {
         CGPoint(
-            x: point.x * size.width / mapReferenceSize.width,
-            y: point.y * size.height / mapReferenceSize.height
+            x: point.x * size.width / 320,
+            y: point.y * size.height / 320
         )
-    }
-
-    private func scaleRect(_ rect: CGRect, in size: CGSize) -> CGRect {
-        CGRect(
-            x: rect.origin.x * size.width / mapReferenceSize.width,
-            y: rect.origin.y * size.height / mapReferenceSize.height,
-            width: rect.width * size.width / mapReferenceSize.width,
-            height: rect.height * size.height / mapReferenceSize.height
-        )
-    }
-
-    private func scaled(_ value: CGFloat, in size: CGSize) -> CGFloat {
-        value * min(size.width, size.height) / min(mapReferenceSize.width, mapReferenceSize.height)
-    }
-
-    private func roomColor(_ type: RoomType) -> Color {
-        switch type {
-        case .lab:        return Color.labPurple.opacity(0.15)
-        case .office:     return Color.officeBlue.opacity(0.15)
-        case .kitchen:    return Color.kitchenRed.opacity(0.15)
-        case .factory:    return Color.factoryOrange.opacity(0.15)
-        case .storage:    return Color.gray.opacity(0.12)
-        case .conference: return Color.safe60Info.opacity(0.12)
-        }
-    }
-}
-
-// MARK: - Scaled Drawing Canvas
-/// Wraps DrawingCanvasView to translate between screen and map coordinates.
-private struct ScaledDrawingCanvasView: View {
-    @Binding var path: [CGPoint]
-    @ObservedObject var evacuationGame: EvacuationGameState
-    let mapSize: CGSize
-
-    private let mapReferenceSize = CGSize(width: 320, height: 320)
-
-    var body: some View {
-        DrawingCanvasView(
-            path: $path,
-            evacuationGame: evacuationGame,
-            toMapCoords: { screenPoint in
-                CGPoint(
-                    x: screenPoint.x * mapReferenceSize.width / mapSize.width,
-                    y: screenPoint.y * mapReferenceSize.height / mapSize.height
-                )
-            }
-        )
-        .frame(width: mapSize.width, height: mapSize.height)
     }
 }
 
 // MARK: - Fire Marker
-private struct FireMarker: View {
+struct FireMarker: View {
     let intensity: FireHazard.FireIntensity
-    @State private var animating = false
-
+    
     var body: some View {
         Image(systemName: "flame.fill")
-            .font(.system(size: fontSize))
-            .foregroundStyle(
-                LinearGradient(colors: [.fireRed, .safe60Orange], startPoint: .top, endPoint: .bottom)
-            )
-            .scaleEffect(animating ? 1.15 : 0.9)
-            .animation(.easeInOut(duration: 0.7).repeatForever(autoreverses: true), value: animating)
-            .onAppear { animating = true }
-    }
-
-    private var fontSize: CGFloat {
-        switch intensity {
-        case .small:  return 18
-        case .medium: return 24
-        case .large:  return 32
-        }
+            .font(intensity == .small ? .body : intensity == .medium ? .title : .largeTitle)
+            .foregroundColor(.red)
     }
 }
 
-// MARK: - Door Marker
-private struct DoorMarker: View {
+// MARK: - Exit Door Marker
+struct ExitDoorMarker: View {
     let status: ExitDoor.DoorStatus
-
-    private var statusColor: Color {
-        switch status {
-        case .safe:    return .exitGreen
-        case .risky:   return .exitYellow
-        case .blocked: return .exitRed
-        }
-    }
-
+    
     var body: some View {
-        VStack(spacing: 2) {
-            Image(systemName: "door.left.hand.open")
-                .font(.title2)
-                .foregroundColor(statusColor)
-            Text("EXIT")
-                .font(.system(size: 8, weight: .bold))
-                .foregroundColor(statusColor)
-        }
+        Image(systemName: "door.left.hand.open")
+            .font(.title2)
+            .foregroundColor(status == .safe ? .green : status == .risky ? .yellow : .red)
     }
 }
 
-#Preview {
-    EvacuationMapView(gameState: GameState())
+// MARK: - Person Marker
+struct PersonMarker: View {
+    var body: some View {
+        Image(systemName: "person.fill")
+            .font(.title3)
+            .foregroundColor(.orange)
+    }
 }

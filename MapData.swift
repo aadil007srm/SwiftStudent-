@@ -75,7 +75,7 @@ class MapDataProvider {
             rooms: [
                 Room(name: "Research Lab", frame: CGRect(x: 20, y: 20, width: 140, height: 140), type: .lab),
                 Room(name: "Server Room", frame: CGRect(x: 200, y: 20, width: 100, height: 100), type: .office),
-                Room(name: "Corridor", frame: CGRect(x: 160, y: 20, width: 40, height: 280))
+                Room(name: "Corridor", frame: CGRect(x: 160, y: 20, width: 40, height: 280), type: .lab)
             ],
             hallways: [Hallway(frame: CGRect(x: 20, y: 160, width: 140, height: 140))],
             walls: [
@@ -216,7 +216,7 @@ class MapDataProvider {
             rooms: [
                 Room(name: "Cold Lab", frame: CGRect(x: 20, y: 20, width: 120, height: 120), type: .lab),
                 Room(name: "Warm Lab", frame: CGRect(x: 180, y: 20, width: 100, height: 120), type: .lab),
-                Room(name: "Airlock", frame: CGRect(x: 140, y: 20, width: 40, height: 260))
+                Room(name: "Airlock", frame: CGRect(x: 140, y: 20, width: 40, height: 260), type: .lab)
             ],
             hallways: [Hallway(frame: CGRect(x: 20, y: 160, width: 120, height: 120))],
             walls: [

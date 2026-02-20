@@ -14,6 +14,11 @@ class HapticManager {
         let generator = UINotificationFeedbackGenerator()
         generator.notificationOccurred(.error)
     }
+    
+    func warning() {
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.warning)
+    }
 
     func impact() {
         let generator = UIImpactFeedbackGenerator(style: .light)

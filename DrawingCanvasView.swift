@@ -48,7 +48,10 @@ struct DrawingCanvasView: View {
                         guard sqrt(dx * dx + dy * dy) > 8 else { return }
                     }
                     let mapPoint = toMapCoords(screenPoint)
-                    if evacuationGame.canDrawAt(mapPoint) {
+                    
+                    // Check if we can draw at this point (not in fire/heavy smoke)
+                    if !FireSpreadEngine.isInFire(mapPoint, fires: evacuationGame.fireLocations) &&
+                       !FireSpreadEngine.isInHeavySmoke(mapPoint, smokeZones: evacuationGame.smokeZones) {
                         path.append(screenPoint)
                         HapticManager.shared.impact()
                     } else {
@@ -58,7 +61,7 @@ struct DrawingCanvasView: View {
                 .onEnded { _ in
                     // Convert screen-space points to map-space for scoring
                     let mapPath = path.map { toMapCoords($0) }
-                    evacuationGame.validateAndScoreRoute(mapPath)
+                    evacuationGame.validateRoute(mapPath)
                 }
         )
     }

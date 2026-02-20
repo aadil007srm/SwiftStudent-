@@ -1,104 +1,119 @@
-import Foundation
-import CoreGraphics
+import SwiftUI
 
-// MARK: - Fire Spread Engine (100% offline, no networking)
-struct FireSpreadEngine {
-
-    /// Calculate new fire positions by expanding from existing fires.
-    static func calculateSpread(from fires: [FireHazard], walls: [Wall]) -> [FireHazard] {
+class FireSpreadEngine {
+    
+    // MARK: - Fire Spread Calculation
+    static func calculateSpread(from fires: [FireHazard], walls: [Wall], timeElapsed: Int) -> [FireHazard] {
         var allFires = fires
-        let existingPositions = Set(fires.map { GridKey($0.position) })
-        var newFires: [FireHazard] = []
-
+        
+        // Spread existing fires
         for fire in fires {
-            let adjacentCells = getAdjacentCells(fire.position, step: 30)
-            for cell in adjacentCells {
-                guard !existingPositions.contains(GridKey(cell)) else { continue }
-                guard !isBlocked(cell, by: walls) else { continue }
-                guard !newFires.contains(where: { GridKey($0.position) == GridKey(cell) }) else { continue }
-                newFires.append(FireHazard(position: cell, intensity: .small))
+            let spreadChance = spreadProbability(for: fire.intensity, timeElapsed: timeElapsed)
+            
+            if Double.random(in: 0...1) < spreadChance {
+                // Try to spread in 8 directions
+                let directions: [(CGFloat, CGFloat)] = [
+                    (20, 0), (-20, 0), (0, 20), (0, -20),
+                    (14, 14), (-14, 14), (14, -14), (-14, -14)
+                ]
+                
+                for (dx, dy) in directions {
+                    let newPosition = CGPoint(x: fire.position.x + dx, y: fire.position.y + dy)
+                    
+                    // Check if position is valid
+                    if isValidPosition(newPosition, walls: walls, existingFires: allFires) {
+                        let newFire = FireHazard(position: newPosition, intensity: .small)
+                        allFires.append(newFire)
+                    }
+                }
             }
         }
-
-        // Upgrade intensity of existing fires over time
-        allFires = allFires.map { fire in
-            var f = fire
-            switch f.intensity {
-            case .small:  f.intensity = .medium
-            case .medium: f.intensity = .large
-            case .large:  break
+        
+        // Upgrade fire intensities over time
+        return allFires.map { fire in
+            let upgradeChance = Double(timeElapsed) / 100.0
+            if Double.random(in: 0...1) < upgradeChance {
+                switch fire.intensity {
+                case .small:
+                    return FireHazard(position: fire.position, intensity: .medium)
+                case .medium:
+                    return FireHazard(position: fire.position, intensity: .large)
+                case .large:
+                    return fire
+                }
             }
-            return f
+            return fire
         }
-
-        allFires.append(contentsOf: newFires)
-        return allFires
     }
-
-    /// Generate smoke zones around fire locations.
+    
+    // MARK: - Smoke Generation
     static func generateSmoke(from fires: [FireHazard]) -> [SmokeZone] {
         var smokeZones: [SmokeZone] = []
+        
         for fire in fires {
-            smokeZones.append(SmokeZone(center: fire.position, radius: 45.0, density: .heavy))
-            smokeZones.append(SmokeZone(center: fire.position, radius: 70.0, density: .medium))
-            smokeZones.append(SmokeZone(center: fire.position, radius: 100.0, density: .light))
+            let smokeRadius: CGFloat = fire.spreadRadius * 2.5
+            let density: SmokeZone.SmokeDensity = {
+                switch fire.intensity {
+                case .small: return .light
+                case .medium: return .medium
+                case .large: return .heavy
+                }
+            }()
+            
+            let smoke = SmokeZone(center: fire.position, radius: smokeRadius, density: density)
+            smokeZones.append(smoke)
         }
+        
         return smokeZones
     }
-
-    /// Returns adjacent cardinal and diagonal cells at `step` distance.
-    static func getAdjacentCells(_ point: CGPoint, step: CGFloat) -> [CGPoint] {
-        let directions: [(CGFloat, CGFloat)] = [
-            (0, -1), (1, 0), (0, 1), (-1, 0),
-            (1, -1), (1, 1), (-1, 1), (-1, -1)
-        ]
-        return directions.map { (dx, dy) in
-            CGPoint(x: point.x + dx * step, y: point.y + dy * step)
+    
+    // MARK: - Helper Methods
+    static func isInFire(_ point: CGPoint, fires: [FireHazard]) -> Bool {
+        fires.contains { fire in
+            let dx = point.x - fire.position.x
+            let dy = point.y - fire.position.y
+            return sqrt(dx * dx + dy * dy) < fire.spreadRadius
         }
     }
-
-    /// Returns true if the given point is within any wall segment (simple AABB check).
-    static func isBlocked(_ point: CGPoint, by walls: [Wall]) -> Bool {
-        for wall in walls {
-            let minX = min(wall.start.x, wall.end.x) - 5
-            let maxX = max(wall.start.x, wall.end.x) + 5
-            let minY = min(wall.start.y, wall.end.y) - 5
-            let maxY = max(wall.start.y, wall.end.y) + 5
-            if point.x >= minX && point.x <= maxX && point.y >= minY && point.y <= maxY {
-                return true
+    
+    static func isInHeavySmoke(_ point: CGPoint, smokeZones: [SmokeZone]) -> Bool {
+        smokeZones.contains { smoke in
+            let dx = point.x - smoke.center.x
+            let dy = point.y - smoke.center.y
+            let dist = sqrt(dx * dx + dy * dy)
+            return smoke.density == .heavy && dist < smoke.radius
+        }
+    }
+    
+    // MARK: - Private Helpers
+    private static func spreadProbability(for intensity: FireHazard.FireIntensity, timeElapsed: Int) -> Double {
+        let baseProb: Double = {
+            switch intensity {
+            case .small: return 0.3
+            case .medium: return 0.5
+            case .large: return 0.7
+            }
+        }()
+        
+        return min(baseProb + Double(timeElapsed) / 100.0, 0.9)
+    }
+    
+    private static func isValidPosition(_ position: CGPoint, walls: [Wall], existingFires: [FireHazard]) -> Bool {
+        // Check bounds
+        guard position.x >= 20 && position.x <= 300 &&
+              position.y >= 20 && position.y <= 300 else {
+            return false
+        }
+        
+        // Check if fire already exists nearby
+        for fire in existingFires {
+            let dx = position.x - fire.position.x
+            let dy = position.y - fire.position.y
+            if sqrt(dx * dx + dy * dy) < 10 {
+                return false
             }
         }
-        return false
-    }
-
-    /// Checks whether a point is within a given distance of a fire or smoke zone.
-    static func isHazardous(_ point: CGPoint, fires: [FireHazard], smokeZones: [SmokeZone], safeRadius: CGFloat = 25) -> Bool {
-        for fire in fires {
-            if distance(point, fire.position) < safeRadius + fire.intensity.radius {
-                return true
-            }
-        }
-        for smoke in smokeZones where smoke.density == .heavy {
-            if distance(point, smoke.center) < smoke.radius * 0.6 {
-                return true
-            }
-        }
-        return false
-    }
-
-    // MARK: - Helpers
-    static func distance(_ a: CGPoint, _ b: CGPoint) -> CGFloat {
-        let dx = a.x - b.x
-        let dy = a.y - b.y
-        return sqrt(dx * dx + dy * dy)
-    }
-
-    private struct GridKey: Hashable {
-        let x: Int
-        let y: Int
-        init(_ point: CGPoint, step: CGFloat = 30) {
-            x = Int((point.x / step).rounded())
-            y = Int((point.y / step).rounded())
-        }
+        
+        return true
     }
 }
