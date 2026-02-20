@@ -44,6 +44,17 @@ struct HomeScreen: View {
                                     gradient: [.safe60Info, .blue]
                                 )
                             }
+
+                            // Evacuation Map Card
+                            ActionCard(
+                                icon: "map.fill",
+                                title: "Evacuation Map",
+                                subtitle: "Interactive training",
+                                gradient: [.purple, .blue],
+                                action: {
+                                    gameState.currentScreen = .evacuationMap
+                                }
+                            )
                             
                             // Your Badges Card
                             NavigationLink {

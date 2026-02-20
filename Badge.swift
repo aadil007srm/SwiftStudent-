@@ -15,6 +15,10 @@ enum BadgeRequirement {
     case completeEnvironment(type: EnvironmentType)
     case perfectScore
     case speedDemon(seconds: Int)
+    case evacuationMaps(count: Int)
+    case rescuePeople(count: Int)
+    case evacuateTime(maxSeconds: Int)
+    case sRankCount(count: Int)
 }
 
 // Badge Manager
@@ -98,6 +102,34 @@ class BadgeManager: ObservableObject {
             color: .yellow,
             description: "Earn all other badges",
             requirement: .completeScenarios(count: 20)
+        ),
+        Badge(
+            name: "Evacuation Expert",
+            icon: "map.fill",
+            color: .purple,
+            description: "Complete 10 evacuation maps",
+            requirement: .evacuationMaps(count: 10)
+        ),
+        Badge(
+            name: "Life Saver",
+            icon: "person.2.fill",
+            color: .green,
+            description: "Rescue 50 people total",
+            requirement: .rescuePeople(count: 50)
+        ),
+        Badge(
+            name: "Speed Evacuator",
+            icon: "timer",
+            color: .orange,
+            description: "Evacuate in under 30 seconds",
+            requirement: .evacuateTime(maxSeconds: 30)
+        ),
+        Badge(
+            name: "Perfect Route Master",
+            icon: "arrow.triangle.branch",
+            color: .blue,
+            description: "Get S-rank 5 times",
+            requirement: .sRankCount(count: 5)
         )
     ]
     
@@ -128,6 +160,15 @@ class BadgeManager: ObservableObject {
         case .speedDemon:  // ✅ Removed unused 'seconds' parameter
             // This would need additional tracking in GameState
             return false
+        case .evacuationMaps(let count):
+            return gameState.evacuationMapsCompleted >= count
+        case .rescuePeople(let count):
+            return gameState.totalPeopleRescued >= count
+        case .evacuateTime:
+            // Requires additional per-game tracking; handled via sRankEvacuations proxy
+            return false
+        case .sRankCount(let count):
+            return gameState.sRankEvacuations >= count
         }
     }
 }

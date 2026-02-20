@@ -6,6 +6,7 @@ enum AppScreen {
     case environmentSelection
     case training
     case completion
+    case evacuationMap
 }
 
 @MainActor
@@ -31,6 +32,17 @@ class GameState: ObservableObject {
     @Published var timerManager = TimerManager()
     @Published var badgesEarnedThisSession: Set<String> = []
 
+    // Evacuation map stats
+    @Published var evacuationMapsCompleted: Int {
+        didSet { UserDefaults.standard.set(evacuationMapsCompleted, forKey: "evacuationMapsCompleted") }
+    }
+    @Published var totalPeopleRescued: Int {
+        didSet { UserDefaults.standard.set(totalPeopleRescued, forKey: "totalPeopleRescued") }
+    }
+    @Published var sRankEvacuations: Int {
+        didSet { UserDefaults.standard.set(sRankEvacuations, forKey: "sRankEvacuations") }
+    }
+
     var scenarios: [Scenario] = []
     var currentScenario: Scenario? {
         scenarios.indices.contains(currentScenarioIndex) ? scenarios[currentScenarioIndex] : nil
@@ -47,6 +59,9 @@ class GameState: ObservableObject {
         self.mistakes = UserDefaults.standard.integer(forKey: "totalMistakes")
         self.totalDecisions = UserDefaults.standard.integer(forKey: "totalDecisions")
         self.correctDecisions = UserDefaults.standard.integer(forKey: "correctDecisions")
+        self.evacuationMapsCompleted = UserDefaults.standard.integer(forKey: "evacuationMapsCompleted")
+        self.totalPeopleRescued = UserDefaults.standard.integer(forKey: "totalPeopleRescued")
+        self.sRankEvacuations = UserDefaults.standard.integer(forKey: "sRankEvacuations")
     }
 
     func loadScenarios(for environment: EnvironmentType) {

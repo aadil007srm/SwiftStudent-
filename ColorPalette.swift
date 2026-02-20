@@ -22,4 +22,15 @@ extension Color {
     // MARK: UI Colors
     static let cardBackground = Color(white: 0.95)                          // #F2F2F2
     static let cardShadow = Color.black.opacity(0.1)
+
+    // MARK: Evacuation Map Colors
+    static let evacuationBackground = Color(red: 0.95, green: 0.95, blue: 0.97)
+    static let wallColor = Color.gray.opacity(0.8)
+    static let hallwayColor = Color.gray.opacity(0.15)
+    static let fireRed = Color(red: 1.0, green: 0.2, blue: 0.0)
+    static let smokeGray = Color.gray.opacity(0.5)
+    static let exitGreen = Color.green
+    static let exitYellow = Color.yellow
+    static let exitRed = Color.red
+    static let pathBlue = Color.blue.opacity(0.5)
 }
