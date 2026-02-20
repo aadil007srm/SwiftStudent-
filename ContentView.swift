@@ -16,6 +16,8 @@ struct ContentView: View {
                 TrainingScreen(gameState: gameState)
             case .completion:
                 CompletionScreen(gameState: gameState)
+            case .evacuationMap:
+                EvacuationMapView(gameState: gameState)
             }
         }
     }
