@@ -6,6 +6,7 @@ struct TrainingScreen: View {
     @State private var selectedChoice: String? = nil
     @State private var showResult = false
     @State private var showTimeoutMessage = false
+    @State private var currentChoices: [Choice] = []
     
     var body: some View {
         NavigationStack {
@@ -56,7 +57,7 @@ struct TrainingScreen: View {
                             .font(.headline)
                         
                         // Choices
-                        ForEach(scenario.choices) { choice in
+                        ForEach(currentChoices) { choice in
                             Button {
                                 if !showResult {
                                     handleChoice(choice)  // ✅ Extracted to method
@@ -113,6 +114,12 @@ struct TrainingScreen: View {
         .onAppear {
             startScenario()  // ✅ Extracted to method
         }
+        .onChange(of: gameState.currentScenarioIndex) { _ in
+            // Safety fallback: ensure choices are populated when scenario changes
+            if currentChoices.isEmpty, let scenario = gameState.currentScenario {
+                currentChoices = scenario.choices.shuffled()
+            }
+        }
     }
     
     // ✅ Proper MainActor method
@@ -132,6 +139,9 @@ struct TrainingScreen: View {
     
     // ✅ Proper MainActor method
     private func startScenario() {
+        if let scenario = gameState.currentScenario {
+            currentChoices = scenario.choices.shuffled()
+        }
         gameState.timerManager.startTimer(duration: 60) { [weak gameState] in
             Task { @MainActor in
                 guard let gameState = gameState else { return }
@@ -164,6 +174,7 @@ struct TrainingScreen: View {
     func nextScenario() {
         selectedChoice = nil
         showResult = false
+        currentChoices = []
         gameState.nextScenario()
         
         if gameState.currentScenario != nil {

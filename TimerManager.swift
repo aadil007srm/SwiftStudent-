@@ -1,44 +1,50 @@
 import Foundation
-import Combine
+import SwiftUI
 
 @MainActor
 class TimerManager: ObservableObject {
     @Published var timeRemaining: Int = 60
-    private var timer: AnyCancellable?
+    private var timer: Timer?
     private var onTimeout: (() -> Void)?
     
-    func startTimer(duration: Int, onTimeout: @escaping () -> Void) {
+    func startTimer(duration: Int, onTimeout: @escaping @MainActor () -> Void) {
+        // Reset first
         self.timeRemaining = duration
         self.onTimeout = onTimeout
         
         // Cancel any existing timer
-        timer?.cancel()
+        timer?.invalidate()
+        timer = nil
         
-        // Create a timer that fires EVERY SECOND on the main thread
-        timer = Timer.publish(every: 1.0, on: .main, in: .common)
-            .autoconnect()
-            .sink { [weak self] _ in
-                guard let self = self else { return }
-                
+        // Create a repeating timer that fires every 1 second
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            
+            Task { @MainActor in
                 if self.timeRemaining > 0 {
                     self.timeRemaining -= 1
                 } else {
-                    self.timer?.cancel()
+                    self.timer?.invalidate()
+                    self.timer = nil
                     self.onTimeout?()
                 }
             }
+        }
+        
+        // Add to run loop to ensure it runs even during scrolling
+        if let timer = timer {
+            RunLoop.main.add(timer, forMode: .common)
+        }
     }
     
     func pauseTimer() {
-        timer?.cancel()
+        timer?.invalidate()
+        timer = nil
     }
     
     func reset() {
-        timer?.cancel()
+        timer?.invalidate()
+        timer = nil
         timeRemaining = 60
-    }
-    
-    deinit {
-        timer?.cancel()
     }
 }
