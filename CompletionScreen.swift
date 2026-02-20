@@ -195,10 +195,7 @@ struct CompletionScreen: View {
                             gameState.currentScreen = .home
                         }
                     } label: {
-                        HStack {
-                            Image(systemName: "chevron.left")
-                            Text("Home")
-                        }
+                        Image(systemName: "chevron.left")
                     }
                 }
             }
