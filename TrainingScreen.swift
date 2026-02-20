@@ -5,6 +5,7 @@ struct TrainingScreen: View {
     @StateObject private var badgeManager = BadgeManager()
     @State private var selectedChoice: String? = nil
     @State private var showResult = false
+    @State private var showTimeoutMessage = false
     
     var body: some View {
         NavigationStack {
@@ -76,6 +77,21 @@ struct TrainingScreen: View {
                             }
                             .disabled(showResult)
                         }
+                        
+                        if showTimeoutMessage {
+                            VStack {
+                                Image(systemName: "clock.badge.exclamationmark")
+                                    .font(.system(size: 50))
+                                    .foregroundColor(.red)
+                                Text("Time's Up!")
+                                    .font(.title.bold())
+                                Text("Moving to next scenario...")
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding()
+                            .background(Color.red.opacity(0.1))
+                            .cornerRadius(16)
+                        }
                     }
                     .padding()
                 }
@@ -121,7 +137,12 @@ struct TrainingScreen: View {
     private func startScenario() {
         gameState.timerManager.startTimer(duration: 60) { [weak gameState] in
             Task { @MainActor in
-                gameState?.mistakes += 1
+                guard let gameState = gameState else { return }
+                gameState.mistakes += 1
+                showTimeoutMessage = true
+                
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                showTimeoutMessage = false
                 nextScenario()
             }
         }
@@ -136,8 +157,10 @@ struct TrainingScreen: View {
     
     func timerColor() -> Color {
         let time = gameState.timerManager.timeRemaining
-        if time > 40 { return .green }
-        if time > 20 { return .orange }
+        if time > 45 { return .green }
+        if time > 30 { return Color(red: 0.7, green: 0.9, blue: 0.3) }
+        if time > 20 { return .yellow }
+        if time > 10 { return .orange }
         return .red
     }
     

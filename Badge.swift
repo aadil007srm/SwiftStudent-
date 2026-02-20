@@ -20,12 +20,32 @@ enum BadgeRequirement {
 // Badge Manager
 @MainActor
 class BadgeManager: ObservableObject {
-    @Published var earnedBadges: Set<String> = []
+    @Published var earnedBadges: Set<String> = [] {
+        didSet {
+            saveToUserDefaults()
+        }
+    }
+    
+    private let userDefaultsKey = "earnedBadges"
+    
+    init() {
+        loadFromUserDefaults()
+    }
+    
+    private func loadFromUserDefaults() {
+        if let data = UserDefaults.standard.array(forKey: userDefaultsKey) as? [String] {
+            earnedBadges = Set(data)
+        }
+    }
+    
+    private func saveToUserDefaults() {
+        UserDefaults.standard.set(Array(earnedBadges), forKey: userDefaultsKey)
+    }
     
     static let allBadges = [
         Badge(
             name: "First Steps",
-            icon: "foot.fill",
+            icon: "figure.walk",
             color: .blue,
             description: "Complete your first scenario",
             requirement: .completeScenarios(count: 1)
