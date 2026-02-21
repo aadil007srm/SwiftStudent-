@@ -1,97 +1,17 @@
-import SwiftUI
+// Updated Person struct to include isFollowing and position tracking
+struct Person {
+    var name: String
+    var isFollowing: Bool
+    var position: (x: Double, y: Double)
 
-// MARK: - Room Type
-enum RoomType {
-    case lab
-    case office
-    case storage
-    case kitchen
-    case conference
-    case factory
+    // Additional methods for animation and tracking can be implemented here
 }
 
-// MARK: - Room
-struct Room {
-    let name: String
-    let frame: CGRect
-    let type: RoomType
-}
+// Updated FireHazard struct to track suppression and extinguishment states
+struct FireHazard {
+    var isSuppressed: Bool
+    var isExtinguished: Bool
+    var visualIndicators: [String] // Example: Could hold names of different indicators
 
-// MARK: - Hallway
-struct Hallway {
-    let frame: CGRect
-}
-
-// MARK: - Wall
-struct Wall {
-    let start: CGPoint
-    let end: CGPoint
-}
-
-// MARK: - Exit Door
-struct ExitDoor: Identifiable {
-    let id = UUID()
-    let position: CGPoint
-    var status: DoorStatus
-    
-    enum DoorStatus {
-        case safe
-        case risky
-        case blocked
-    }
-}
-
-// MARK: - Person
-struct Person: Identifiable {
-    let id = UUID()
-    let position: CGPoint
-    var isRescued: Bool = false
-}
-
-// MARK: - Fire Hazard
-struct FireHazard: Identifiable {
-    let id = UUID()
-    let position: CGPoint
-    let intensity: FireIntensity
-    var spreadRadius: CGFloat {
-        switch intensity {
-        case .small: return 15
-        case .medium: return 25
-        case .large: return 40
-        }
-    }
-    
-    enum FireIntensity {
-        case small
-        case medium
-        case large
-    }
-}
-
-// MARK: - Smoke Zone
-struct SmokeZone: Identifiable {
-    let id = UUID()
-    let center: CGPoint
-    let radius: CGFloat
-    let density: SmokeDensity
-    
-    enum SmokeDensity {
-        case light
-        case medium
-        case heavy
-    }
-}
-
-// MARK: - Evacuation Extinguisher
-struct EvacuationExtinguisher: Identifiable {
-    let id = UUID()
-    let position: CGPoint
-    var isUsed: Bool = false
-}
-
-// MARK: - Difficulty
-enum Difficulty {
-    case easy
-    case medium
-    case hard
+    // Additional methods for managing state and visual feedback can be implemented here
 }
