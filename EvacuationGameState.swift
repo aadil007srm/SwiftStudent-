@@ -1,4 +1,5 @@
 import SwiftUI
+import EvacuationEngine
 
 @MainActor
 class EvacuationGameState: ObservableObject {
@@ -49,6 +50,8 @@ class EvacuationGameState: ObservableObject {
     private var executionTimer: Timer?
     /// Ticks elapsed since execution started; used to implement smoke-based slowdown.
     private var executionTick: Int = 0
+    /// Consecutive execution ticks spent in heavy smoke (Feature 4: sustained smoke failure).
+    private var smokeExposureTicks: Int = 0
 
     enum GamePhase {
         case tutorial
@@ -86,6 +89,7 @@ class EvacuationGameState: ObservableObject {
         extinguisherCharge = 0
         playerRouteIndex = 0
         inHeavySmoke     = false
+        smokeExposureTicks = 0
         gamePhase        = .planning
     }
 
@@ -187,11 +191,15 @@ class EvacuationGameState: ObservableObject {
 
         // Feature 3: detect rescuable people along the route
         for i in trappedPeople.indices {
-            if path.contains(where: { dist($0, trappedPeople[i].position) < 20 }) {
+            // Find nearest route point to this person
+            if let nearestIdx = path.indices.min(by: {
+                dist(path[$0], trappedPeople[i].position) < dist(path[$1], trappedPeople[i].position)
+            }), dist(path[nearestIdx], trappedPeople[i].position) < 20 {
                 trappedPeople[i].isRescued = true
                 trappedPeople[i].isFollower = true
                 var follower = trappedPeople[i]
-                follower.followerRouteIndex = 0
+                // Follower starts from the nearest route point to their position
+                follower.followerRouteIndex = nearestIdx
                 rescuedPeople.append(follower)
                 followers.append(follower)
             }
@@ -240,10 +248,13 @@ class EvacuationGameState: ObservableObject {
         gamePhase = .executing
         playerRouteIndex = 0
         executionTick = 0
+        smokeExposureTicks = 0
 
-        // Reset follower route indices so they trail behind
+        // Position each follower at the nearest route point to their original map position
         for i in followers.indices {
-            followers[i].followerRouteIndex = 0
+            let idx = min(max(0, followers[i].followerRouteIndex), drawnRoute.count - 1)
+            followers[i].followerRouteIndex = idx
+            followers[i].position = drawnRoute[idx]
         }
 
         executionTimer?.invalidate()
@@ -259,11 +270,19 @@ class EvacuationGameState: ObservableObject {
     private func advanceExecution() {
         executionTick += 1
 
-        // Feature 4: smoke slows movement – skip every other tick when in heavy smoke
+        // Feature 4: track sustained heavy-smoke exposure; fail if > ~2 seconds (~33 ticks at 0.06s)
         inHeavySmoke = FireSpreadEngine.isInHeavySmoke(playerPosition, smokeZones: smokeZones)
-        if inHeavySmoke && executionTick.isMultiple(of: 2) {
+        if inHeavySmoke {
+            smokeExposureTicks += 1
             score = max(0, score - 1)   // score penalty for lingering in heavy smoke
-            return
+            if smokeExposureTicks > 33 {
+                gameOver(success: false)
+                return
+            }
+            // Feature 4: smoke slows movement – skip every other tick when in heavy smoke
+            if executionTick.isMultiple(of: 2) { return }
+        } else {
+            smokeExposureTicks = 0
         }
 
         // Advance player
@@ -275,16 +294,58 @@ class EvacuationGameState: ObservableObject {
         playerRouteIndex = nextPlayerIndex
         playerPosition = drawnRoute[playerRouteIndex]
 
-        // Feature 2: auto-suppress nearby fires while holding extinguisher
-        if hasExtinguisher {
-            for i in fireLocations.indices {
+        // Feature 2: auto-pickup extinguisher when player is within pickup radius
+        for i in extinguishers.indices where !extinguishers[i].isPickedUp {
+            if dist(extinguishers[i].position, playerPosition) < extinguisherPickupRadius {
+                extinguishers[i].isPickedUp = true
+                hasExtinguisher = true
+                extinguisherCharge = 3
+                HapticManager.shared.success()
+            }
+        }
+
+        // Feature 2: auto-suppress nearby fire (step down intensity: large→medium→small→out),
+        //   consuming one charge per fire touched per pass.
+        if hasExtinguisher && extinguisherCharge > 0 {
+            for i in fireLocations.indices where !fireLocations[i].isSuppressed {
                 if dist(fireLocations[i].position, playerPosition) < extinguisherSuppressionRadius {
-                    fireLocations[i].isSuppressed = true
+                    switch fireLocations[i].intensity {
+                    case .large:  fireLocations[i].intensity = .medium
+                    case .medium: fireLocations[i].intensity = .small
+                    case .small:  fireLocations[i].isSuppressed = true
+                    }
+                    extinguisherCharge -= 1
+                    if extinguisherCharge == 0 {
+                        hasExtinguisher = false
+                        break
+                    }
                 }
             }
         }
 
-        // Feature 3: advance followers (each trails behind by a fixed offset)
+        // Feature 3: rescue trapped people when player reaches them during execution
+        for i in trappedPeople.indices where !trappedPeople[i].isRescued {
+            if dist(trappedPeople[i].position, playerPosition) < 25 {
+                trappedPeople[i].isRescued = true
+                var follower = trappedPeople[i]
+                follower.isFollower = true
+                // Follower joins at the nearest route point to their position
+                let nearestIdx = drawnRoute.indices.min(by: {
+                    dist(drawnRoute[$0], trappedPeople[i].position) < dist(drawnRoute[$1], trappedPeople[i].position)
+                }) ?? playerRouteIndex
+                follower.followerRouteIndex = max(0, nearestIdx)
+                follower.position = drawnRoute[follower.followerRouteIndex]
+                followers.append(follower)
+                rescuedPeople.append(follower)
+                // Risk penalty if rescuing in active fire without an extinguisher
+                if FireSpreadEngine.isInFire(playerPosition, fires: fireLocations) && !hasExtinguisher {
+                    score = max(0, score - 50)
+                }
+                HapticManager.shared.success()
+            }
+        }
+
+        // Feature 3: advance followers – each trails behind by a fixed route-point offset
         let followerOffset = 8  // route points behind the player
         for i in followers.indices {
             let targetIndex = max(0, playerRouteIndex - followerOffset * (i + 1))

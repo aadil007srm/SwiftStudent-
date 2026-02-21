@@ -1,4 +1,5 @@
 import SwiftUI
+import EvacuationEngine
 
 /// Renders a drawn path on a canvas and handles drag-to-draw gestures.
 /// `toMapCoords` converts a screen-space CGPoint to the map coordinate space
