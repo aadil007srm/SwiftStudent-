@@ -10,7 +10,8 @@ import AppleProductTypes
 let package = Package(
     name: "swiftStudent",
     platforms: [
-        .iOS("16.0")
+        .iOS("16.0"),
+        .macOS("13.0")
     ],
     products: [
         .iOSApplication(
@@ -32,12 +33,27 @@ let package = Package(
                 .landscapeLeft,
                 .portraitUpsideDown(.when(deviceFamilies: [.pad]))
             ]
+        ),
+        .library(
+            name: "EvacuationEngine",
+            targets: ["EvacuationEngine"]
         )
     ],
     targets: [
+        .target(
+            name: "EvacuationEngine",
+            path: "Sources/EvacuationEngine"
+        ),
         .executableTarget(
             name: "AppModule",
-            path: "."
+            dependencies: ["EvacuationEngine"],
+            path: ".",
+            exclude: ["Sources", "Tests"]
+        ),
+        .testTarget(
+            name: "EvacuationEngineTests",
+            dependencies: ["EvacuationEngine"],
+            path: "Tests/EvacuationEngineTests"
         )
     ],
     swiftLanguageVersions: [.v6]

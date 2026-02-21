@@ -1,12 +1,12 @@
 import Foundation
 
 /// Provides geometric helpers for wall-collision detection during route drawing.
-struct WallCollisionDetector {
+public struct WallCollisionDetector {
 
     // MARK: - Public API
 
     /// Returns `true` if the segment (p1 → p2) properly crosses any wall segment.
-    static func segmentCrossesWall(from p1: CGPoint, to p2: CGPoint, walls: [Wall]) -> Bool {
+    public static func segmentCrossesWall(from p1: CGPoint, to p2: CGPoint, walls: [Wall]) -> Bool {
         for wall in walls where segmentsIntersect(p1, p2, wall.start, wall.end) {
             return true
         }
@@ -14,7 +14,7 @@ struct WallCollisionDetector {
     }
 
     /// Returns `true` if line segment (p1 → p2) properly intersects line segment (p3 → p4).
-    static func segmentsIntersect(_ p1: CGPoint, _ p2: CGPoint,
+    public static func segmentsIntersect(_ p1: CGPoint, _ p2: CGPoint,
                                   _ p3: CGPoint, _ p4: CGPoint) -> Bool {
         let d1 = cross(p3, p4, p1)
         let d2 = cross(p3, p4, p2)

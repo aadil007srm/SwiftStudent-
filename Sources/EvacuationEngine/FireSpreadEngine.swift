@@ -1,31 +1,31 @@
-import SwiftUI
+import Foundation
 
 // MARK: - Seeded Random Number Generator
 /// A deterministic linear-congruential RNG useful for testing.
-struct SeededRNG: RandomNumberGenerator {
+public struct SeededRNG: RandomNumberGenerator {
     private var state: UInt64
 
-    init(seed: UInt64) { state = seed }
+    public init(seed: UInt64) { state = seed }
 
-    mutating func next() -> UInt64 {
+    public mutating func next() -> UInt64 {
         // 64-bit linear congruential generator (LCG) with Knuth/Newlib constants
         state = state &* 6_364_136_223_846_793_005 &+ 1_442_695_040_888_963_407
         return state
     }
 }
 
-class FireSpreadEngine {
+public class FireSpreadEngine {
 
     // MARK: - Fire Spread Calculation
 
     /// Calculates the next fire state using the system RNG.
-    static func calculateSpread(from fires: [FireHazard], walls: [Wall], timeElapsed: Int) -> [FireHazard] {
+    public static func calculateSpread(from fires: [FireHazard], walls: [Wall], timeElapsed: Int) -> [FireHazard] {
         var rng = SystemRandomNumberGenerator()
         return calculateSpread(from: fires, walls: walls, timeElapsed: timeElapsed, rng: &rng)
     }
 
     /// Calculates the next fire state using an injectable RNG (enables deterministic testing).
-    static func calculateSpread<R: RandomNumberGenerator>(
+    public static func calculateSpread<R: RandomNumberGenerator>(
         from fires: [FireHazard],
         walls: [Wall],
         timeElapsed: Int,
@@ -68,7 +68,7 @@ class FireSpreadEngine {
     // MARK: - Smoke Generation
 
     /// Creates fresh smoke zones from the current fire list.
-    static func generateSmoke(from fires: [FireHazard]) -> [SmokeZone] {
+    public static func generateSmoke(from fires: [FireHazard]) -> [SmokeZone] {
         fires.map { fire in
             let density: SmokeZone.SmokeDensity = fire.isSuppressed ? .light : {
                 switch fire.intensity {
@@ -86,7 +86,7 @@ class FireSpreadEngine {
     ///   - existing: smoke zones carried over from the previous tick.
     ///   - fires: current fire state (used to generate any new smoke zones).
     ///   - expansionPerTick: additional radius each smoke zone gains per tick.
-    static func evolveSmoke(existing: [SmokeZone], fires: [FireHazard],
+    public static func evolveSmoke(existing: [SmokeZone], fires: [FireHazard],
                             expansionPerTick: CGFloat = 4) -> [SmokeZone] {
         // Age and expand existing smoke
         var evolved: [SmokeZone] = existing.compactMap { zone in
@@ -123,19 +123,19 @@ class FireSpreadEngine {
 
     // MARK: - Helper Methods
 
-    static func isInFire(_ point: CGPoint, fires: [FireHazard]) -> Bool {
+    public static func isInFire(_ point: CGPoint, fires: [FireHazard]) -> Bool {
         fires.contains { fire in
             !fire.isSuppressed && dist(point, fire.position) < fire.spreadRadius
         }
     }
 
-    static func isInHeavySmoke(_ point: CGPoint, smokeZones: [SmokeZone]) -> Bool {
+    public static func isInHeavySmoke(_ point: CGPoint, smokeZones: [SmokeZone]) -> Bool {
         smokeZones.contains { smoke in
             smoke.density == .heavy && dist(point, smoke.center) < smoke.radius
         }
     }
 
-    static func isInSmoke(_ point: CGPoint, smokeZones: [SmokeZone]) -> Bool {
+    public static func isInSmoke(_ point: CGPoint, smokeZones: [SmokeZone]) -> Bool {
         smokeZones.contains { dist(point, $0.center) < $0.radius }
     }
 

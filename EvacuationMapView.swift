@@ -1,4 +1,5 @@
 import SwiftUI
+import EvacuationEngine
 
 struct EvacuationMapView: View {
     @ObservedObject var gameState: GameState

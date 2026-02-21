@@ -1,4 +1,5 @@
 import SwiftUI
+import EvacuationEngine
 
 struct MapLayout: Identifiable {
     let id = UUID()
