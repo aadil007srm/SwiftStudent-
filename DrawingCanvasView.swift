@@ -40,6 +40,7 @@ struct DrawingCanvasView: View {
         .gesture(
             DragGesture(minimumDistance: 0)
                 .onChanged { value in
+                    guard evacuationGame.gamePhase == .planning else { return }
                     let screenPoint = value.location
                     // Throttle: only add if moved enough from last point
                     if let last = path.last {
@@ -48,8 +49,20 @@ struct DrawingCanvasView: View {
                         guard sqrt(dx * dx + dy * dy) > 8 else { return }
                     }
                     let mapPoint = toMapCoords(screenPoint)
-                    
-                    // Check if we can draw at this point (not in fire/heavy smoke)
+
+                    // Feature 1: Reject segment that crosses a wall
+                    if let lastScreen = path.last {
+                        let lastMap = toMapCoords(lastScreen)
+                        if WallCollisionDetector.segmentCrossesWall(
+                            from: lastMap, to: mapPoint,
+                            walls: evacuationGame.selectedMap.walls
+                        ) {
+                            HapticManager.shared.error()
+                            return
+                        }
+                    }
+
+                    // Reject drawing through active fire or heavy smoke
                     if !FireSpreadEngine.isInFire(mapPoint, fires: evacuationGame.fireLocations) &&
                        !FireSpreadEngine.isInHeavySmoke(mapPoint, smokeZones: evacuationGame.smokeZones) {
                         path.append(screenPoint)
