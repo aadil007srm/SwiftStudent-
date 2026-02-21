@@ -4,7 +4,6 @@ import EvacuationEngine
 struct EvacuationMapView: View {
     @ObservedObject var gameState: GameState
     @StateObject private var evacuationGame = EvacuationGameState()
-    @State private var drawnPath: [CGPoint] = []
     @State private var showTutorial = true
 
     var body: some View {
@@ -44,7 +43,6 @@ struct EvacuationMapView: View {
                                 ForEach(maps.indices, id: \.self) { idx in
                                     Button(maps[idx].name) {
                                         evacuationGame.startGame(with: maps[idx])
-                                        drawnPath = []
                                     }
                                 }
                             }
@@ -191,14 +189,19 @@ struct EvacuationMapView: View {
                     .foregroundColor(.blue)
                     .position(scaledPoint(evacuationGame.playerPosition, in: geo.size))
 
-                // Drawn path
-                DrawingCanvasView(
-                    path: $drawnPath,
+                // Drawn route – corridor-constrained input
+                CorridorInputView(
                     evacuationGame: evacuationGame,
                     toMapCoords: { screenPoint in
                         CGPoint(
                             x: screenPoint.x * 320 / geo.size.width,
                             y: screenPoint.y * 320 / geo.size.height
+                        )
+                    },
+                    toScreenCoords: { mapPoint in
+                        CGPoint(
+                            x: mapPoint.x * geo.size.width / 320,
+                            y: mapPoint.y * geo.size.height / 320
                         )
                     }
                 )
@@ -262,42 +265,53 @@ struct EvacuationMapView: View {
 
     // MARK: - Controls
     private var controlsView: some View {
-        HStack(spacing: 12) {
-            Button {
-                // Re-validate using stored map-space route
-                if !evacuationGame.drawnRoute.isEmpty {
-                    evacuationGame.validateRoute(evacuationGame.drawnRoute)
+        VStack(spacing: 6) {
+            // Validation feedback message
+            if !evacuationGame.routeValidationMessage.isEmpty {
+                Text(evacuationGame.routeValidationMessage)
+                    .font(.caption)
+                    .foregroundColor(.red)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+            }
+
+            HStack(spacing: 12) {
+                Button {
+                    // Re-validate using stored map-space route
+                    if !evacuationGame.drawnRoute.isEmpty {
+                        evacuationGame.validateRoute(evacuationGame.drawnRoute)
+                    }
+                } label: {
+                    Text("Validate Route")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.blue)
+                        .cornerRadius(12)
                 }
-            } label: {
-                Text("Validate Route")
+                .disabled(evacuationGame.drawnRoute.isEmpty || evacuationGame.gamePhase == .executing)
+
+                Button {
+                    evacuationGame.startExecution()
+                } label: {
+                    HStack {
+                        if evacuationGame.gamePhase == .executing {
+                            ProgressView()
+                                .tint(.white)
+                                .scaleEffect(0.8)
+                        }
+                        Text(evacuationGame.gamePhase == .executing ? "Evacuating…" : "Evacuate!")
+                    }
                     .font(.headline)
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.blue)
+                    .background(evacuationGame.gamePhase == .executing ? Color.gray : Color.green)
                     .cornerRadius(12)
-            }
-            .disabled(drawnPath.isEmpty || evacuationGame.gamePhase == .executing)
-
-            Button {
-                evacuationGame.startExecution()
-            } label: {
-                HStack {
-                    if evacuationGame.gamePhase == .executing {
-                        ProgressView()
-                            .tint(.white)
-                            .scaleEffect(0.8)
-                    }
-                    Text(evacuationGame.gamePhase == .executing ? "Evacuating…" : "Evacuate!")
                 }
-                .font(.headline)
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(evacuationGame.gamePhase == .executing ? Color.gray : Color.green)
-                .cornerRadius(12)
+                .disabled(!evacuationGame.isRouteValid || evacuationGame.gamePhase == .executing)
             }
-            .disabled(drawnPath.isEmpty || evacuationGame.gamePhase == .executing)
         }
         .padding()
     }

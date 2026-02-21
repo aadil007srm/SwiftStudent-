@@ -234,3 +234,119 @@ final class FireSpreadEngineTests: XCTestCase {
         XCTAssertFalse(FireSpreadEngine.isInHeavySmoke(CGPoint(x: 200, y: 200), smokeZones: [zone]))
     }
 }
+
+// MARK: - CorridorSnapper Tests
+
+final class CorridorSnapperTests: XCTestCase {
+
+    private let hallways: [Hallway] = [
+        Hallway(frame: CGRect(x: 100, y: 50, width: 60, height: 200))
+    ]
+
+    func testPointInsideCorridorUnchanged() {
+        let inside = CGPoint(x: 130, y: 100)
+        let snapped = CorridorSnapper.snap(point: inside, hallways: hallways)
+        XCTAssertEqual(snapped.x, inside.x, accuracy: 0.001)
+        XCTAssertEqual(snapped.y, inside.y, accuracy: 0.001)
+    }
+
+    func testPointLeftOfCorridorClampsToLeftEdge() {
+        // Point is directly to the left of the hallway rect
+        let outside = CGPoint(x: 50, y: 100)
+        let snapped = CorridorSnapper.snap(point: outside, hallways: hallways)
+        XCTAssertEqual(snapped.x, 100, accuracy: 0.001, "x should clamp to minX=100")
+        XCTAssertEqual(snapped.y, 100, accuracy: 0.001, "y was already in range")
+    }
+
+    func testPointRightOfCorridorClampsToRightEdge() {
+        let outside = CGPoint(x: 200, y: 150)
+        let snapped = CorridorSnapper.snap(point: outside, hallways: hallways)
+        XCTAssertEqual(snapped.x, 160, accuracy: 0.001, "x should clamp to maxX=160")
+        XCTAssertEqual(snapped.y, 150, accuracy: 0.001)
+    }
+
+    func testPointAboveCorridorClampsToTopEdge() {
+        let outside = CGPoint(x: 130, y: 20)
+        let snapped = CorridorSnapper.snap(point: outside, hallways: hallways)
+        XCTAssertEqual(snapped.x, 130, accuracy: 0.001)
+        XCTAssertEqual(snapped.y, 50, accuracy: 0.001, "y should clamp to minY=50")
+    }
+
+    func testSnapChoosesNearestOfMultipleHallways() {
+        let h1 = Hallway(frame: CGRect(x: 0,   y: 0, width: 40, height: 40))
+        let h2 = Hallway(frame: CGRect(x: 200, y: 0, width: 40, height: 40))
+        // Point is much closer to h1
+        let point = CGPoint(x: 50, y: 20)
+        let snapped = CorridorSnapper.snap(point: point, hallways: [h1, h2])
+        // Should snap to right edge of h1 (x=40), not left edge of h2 (x=200)
+        XCTAssertEqual(snapped.x, 40, accuracy: 0.001)
+        XCTAssertEqual(snapped.y, 20, accuracy: 0.001)
+    }
+
+    func testSnapWithEmptyHallwaysReturnsOriginal() {
+        let point = CGPoint(x: 50, y: 50)
+        let snapped = CorridorSnapper.snap(point: point, hallways: [])
+        XCTAssertEqual(snapped.x, point.x, accuracy: 0.001)
+        XCTAssertEqual(snapped.y, point.y, accuracy: 0.001)
+    }
+}
+
+// MARK: - CorridorRouteValidator Tests
+
+final class CorridorRouteValidatorTests: XCTestCase {
+
+    private let corridor = Hallway(frame: CGRect(x: 100, y: 50, width: 60, height: 200))
+
+    func testValidRouteInsideCorridorAccepted() {
+        let route: [CGPoint] = [
+            CGPoint(x: 130, y: 60),
+            CGPoint(x: 130, y: 200)
+        ]
+        let result = CorridorRouteValidator.validate(route: route, hallways: [corridor])
+        XCTAssertTrue(result.isValid)
+        XCTAssertNil(result.reason)
+    }
+
+    func testRouteStartingOutsideCorridorRejected() {
+        let route: [CGPoint] = [
+            CGPoint(x: 50, y: 100),   // outside
+            CGPoint(x: 130, y: 100)   // inside
+        ]
+        let result = CorridorRouteValidator.validate(route: route, hallways: [corridor])
+        XCTAssertFalse(result.isValid)
+        XCTAssertNotNil(result.reason)
+    }
+
+    func testRouteEndingOutsideCorridorRejected() {
+        let route: [CGPoint] = [
+            CGPoint(x: 130, y: 100),  // inside
+            CGPoint(x: 130, y: 300)   // outside (below the rect which ends at y=250)
+        ]
+        let result = CorridorRouteValidator.validate(route: route, hallways: [corridor])
+        XCTAssertFalse(result.isValid)
+        XCTAssertNotNil(result.reason)
+    }
+
+    func testSinglePointRouteIsValid() {
+        let route: [CGPoint] = [CGPoint(x: 130, y: 100)]
+        let result = CorridorRouteValidator.validate(route: route, hallways: [corridor])
+        XCTAssertTrue(result.isValid)
+    }
+
+    func testEmptyRouteIsValid() {
+        let result = CorridorRouteValidator.validate(route: [], hallways: [corridor])
+        XCTAssertTrue(result.isValid)
+    }
+
+    func testValidRouteAcrossMultipleHallways() {
+        // Two adjacent corridors
+        let h1 = Hallway(frame: CGRect(x: 100, y: 50, width: 60, height: 100))
+        let h2 = Hallway(frame: CGRect(x: 100, y: 150, width: 60, height: 100))
+        let route: [CGPoint] = [
+            CGPoint(x: 130, y: 60),
+            CGPoint(x: 130, y: 240)
+        ]
+        let result = CorridorRouteValidator.validate(route: route, hallways: [h1, h2])
+        XCTAssertTrue(result.isValid)
+    }
+}

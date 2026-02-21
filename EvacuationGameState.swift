@@ -26,6 +26,8 @@ class EvacuationGameState: ObservableObject {
     let extinguisherPickupRadius: CGFloat = 20
     /// Configurable radius for fire suppression.
     let extinguisherSuppressionRadius: CGFloat = 40
+    /// Maximum distance from route endpoint to an open exit door to consider the route valid.
+    let exitProximityThreshold: CGFloat = 40
 
     // MARK: - Feature 3: Follower state
     /// Subset of rescuedPeople that are actively following the player along the route.
@@ -43,6 +45,10 @@ class EvacuationGameState: ObservableObject {
     @Published var rescuedPeople: [Person] = []
     @Published var score: Int = 0
     @Published var grade: String = ""
+    /// Whether the last validated route passed all corridor + exit checks.
+    @Published var isRouteValid: Bool = false
+    /// Human-readable reason when the route fails validation (empty when valid).
+    @Published var routeValidationMessage: String = ""
 
     // MARK: - Internal timers
     private var countdownTimer: Timer?
@@ -76,13 +82,15 @@ class EvacuationGameState: ObservableObject {
         exitDoors        = selectedMap.exitDoors
         trappedPeople    = selectedMap.trappedPeople
         extinguishers    = selectedMap.extinguishers
-        drawnRoute       = []
-        rescuedPeople    = []
-        followers        = []
-        routeSafetyScore = 100
-        routeDistance    = 0
-        score            = 0
-        grade            = ""
+        drawnRoute              = []
+        rescuedPeople           = []
+        followers               = []
+        routeSafetyScore        = 100
+        routeDistance           = 0
+        score                   = 0
+        grade                   = ""
+        isRouteValid            = false
+        routeValidationMessage  = ""
         timeRemaining    = initialTime
         timerColor       = .green
         hasExtinguisher  = false
@@ -162,6 +170,30 @@ class EvacuationGameState: ObservableObject {
 
         drawnRoute = path
 
+        // --- Corridor validation ---
+        let corridorResult = CorridorRouteValidator.validate(
+            route: path,
+            hallways: selectedMap.hallways
+        )
+        if !corridorResult.isValid {
+            isRouteValid           = false
+            routeValidationMessage = corridorResult.reason ?? "Route leaves corridor area"
+            HapticManager.shared.error()
+            return
+        }
+
+        // --- Exit reachability check ---
+        let lastPoint = path.last!
+        let reachesExit = exitDoors.contains { exit in
+            exit.status != .blocked && dist(lastPoint, exit.position) < exitProximityThreshold
+        }
+        if !reachesExit {
+            isRouteValid           = false
+            routeValidationMessage = "Route does not end near an open exit"
+            HapticManager.shared.warning()
+            return
+        }
+
         // Reset rescued state so re-drawing recomputes correctly
         trappedPeople = selectedMap.trappedPeople
         rescuedPeople = []
@@ -213,6 +245,9 @@ class EvacuationGameState: ObservableObject {
                 extinguisherCharge = 3
             }
         }
+
+        isRouteValid           = true
+        routeValidationMessage = ""
 
         // Haptic feedback based on safety score
         if routeSafetyScore >= 80 {
